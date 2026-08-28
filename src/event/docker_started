@@ -1,0 +1,2 @@
+#!/bin/bash
+exec /usr/local/emhttp/plugins/compose2unraid/scripts/hook.sh
