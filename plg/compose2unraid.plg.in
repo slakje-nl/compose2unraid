@@ -1,0 +1,71 @@
+<?xml version='1.0' standalone='yes'?>
+<!DOCTYPE PLUGIN [
+<!ENTITY name "compose2unraid">
+<!ENTITY author "slakje.nl">
+<!ENTITY version "@VERSION@">
+<!ENTITY launch "Docker/Compose2Unraid">
+<!ENTITY pluginURL "https://github.com/slakje-nl/compose2unraid/releases/latest/download/compose2unraid.plg">
+<!ENTITY support "https://github.com/slakje-nl/compose2unraid/issues">
+<!ENTITY plugdir "/usr/local/emhttp/plugins/&name;">
+<!ENTITY flashdir "/boot/config/plugins/&name;">
+<!ENTITY composeVersion "@COMPOSE_VERSION@">
+<!ENTITY composeSha256 "@COMPOSE_SHA256@">
+<!ENTITY composeTarget "/usr/local/lib/docker/cli-plugins/docker-compose">
+]>
+
+<PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" support="&support;" min="6.12.0" icon="cubes">
+
+<CHANGES>
+##&name;
+
+###&version;
+- Release notes live at https://github.com/slakje-nl/compose2unraid/releases
+</CHANGES>
+
+<FILE Name="&flashdir;/bin/docker-compose-&composeVersion;">
+<URL>https://github.com/docker/compose/releases/download/&composeVersion;/docker-compose-linux-x86_64</URL>
+<SHA256>&composeSha256;</SHA256>
+</FILE>
+
+<FILE Run="/bin/bash">
+<INLINE>
+rm -rf &plugdir;
+mkdir -p &plugdir; &flashdir; /var/log/&name;
+</INLINE>
+</FILE>
+
+@FILES@
+
+<FILE Run="/bin/bash">
+<INLINE>
+set -euo pipefail
+
+mkdir -p "$(dirname &composeTarget;)"
+install -m 0755 "&flashdir;/bin/docker-compose-&composeVersion;" &composeTarget;
+find "&flashdir;/bin" -name 'docker-compose-*' ! -name "docker-compose-&composeVersion;" -delete
+
+cfgs="&plugdir;/default.cfg"
+if [[ -f "&flashdir;/&name;.cfg" ]]; then
+  cfgs="$cfgs &flashdir;/&name;.cfg"
+fi
+base="$(sed -n 's/^BASE_PATH="\(.*\)"$/\1/p' $cfgs | tail -1)"
+mount="/$(printf '%s' "$base" | cut -d/ -f2,3)"
+if mountpoint -q "$mount"; then
+  mkdir -p "$base/stacks"
+  echo "stacks directory: $base/stacks"
+else
+  echo "$mount is not mounted yet, the stacks directory is created when Docker starts"
+fi
+echo "&name; &version; installed with docker compose &composeVersion;"
+</INLINE>
+</FILE>
+
+<FILE Run="/bin/bash" Method="remove">
+<INLINE>
+rm -f &composeTarget;
+rm -rf &plugdir;
+echo "&name; removed. The stacks keep running; their files and the settings stay under the base path and on flash."
+</INLINE>
+</FILE>
+
+</PLUGIN>

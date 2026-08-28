@@ -1,0 +1,51 @@
+name: release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: work out the next tag and the plugin version
+        id: version
+        run: |
+          git fetch --tags --force
+          highest=$(git tag --list 'v[0-9]*' | sed 's/^v//' | sort -n | tail -1)
+          echo "tag=v$(( ${highest:-0} + 1 ))" >> "$GITHUB_OUTPUT"
+          today=$(date -u +%Y.%m.%d)
+          taken=$(git tag --list "plg-$today*" | wc -l)
+          if [ "$taken" -eq 0 ]; then
+            echo "plugin=$today" >> "$GITHUB_OUTPUT"
+          else
+            echo "plugin=$today.$taken" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: build the plugin file
+        run: tools/build-plg.sh "${{ steps.version.outputs.plugin }}"
+
+      - name: tag the release
+        run: |
+          git tag "${{ steps.version.outputs.tag }}"
+          git tag "plg-${{ steps.version.outputs.plugin }}"
+          git push origin "${{ steps.version.outputs.tag }}" "plg-${{ steps.version.outputs.plugin }}"
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }} (plugin ${{ steps.version.outputs.plugin }})
+          files: dist/compose2unraid.plg
+          generate_release_notes: true

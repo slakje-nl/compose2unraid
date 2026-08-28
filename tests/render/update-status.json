@@ -1,0 +1,4 @@
+{
+  "example/alpha:1.2": {"local": "sha256:old", "remote": "sha256:new", "status": "false"},
+  "example/beta:latest": {"local": "sha256:same", "remote": "sha256:same", "status": "true"}
+}

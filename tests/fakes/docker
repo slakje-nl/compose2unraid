@@ -1,0 +1,317 @@
+#!/bin/bash
+set -euo pipefail
+
+printf '%s\n' "$*" >> "${FAKE_DOCKER_LOG:?}"
+
+option_value() {
+  local wanted="$1" previous="" arg
+  shift
+  for arg in "$@"; do
+    if [[ "$previous" == "$wanted" ]]; then
+      printf '%s' "$arg"
+      return 0
+    fi
+
+    previous="$arg"
+  done
+}
+
+subcommand_of() {
+  local previous="" arg
+  shift
+  for arg in "$@"; do
+    if [[ "$previous" == "-p" || "$previous" == "--project-directory" ||
+      "$previous" == "--progress" ]]; then
+      previous=""
+      continue
+    fi
+    if [[ "$arg" != -* ]]; then
+      printf '%s' "$arg"
+      return 0
+    fi
+
+    previous="$arg"
+  done
+}
+
+listed() {
+  [[ " ${!1:-} " == *" $2 "* ]]
+}
+
+containers_fixture() {
+  if grep ' up -d' "$FAKE_DOCKER_LOG" | grep -qv -- '--dry-run' &&
+    [[ -n "${FAKE_DOCKER_CONTAINERS_AFTER_UP:-}" ]]; then
+    cat "$FAKE_DOCKER_CONTAINERS_AFTER_UP"
+  elif [[ -n "${FAKE_DOCKER_CONTAINERS:-}" && -f "$FAKE_DOCKER_CONTAINERS" ]]; then
+    cat "$FAKE_DOCKER_CONTAINERS"
+  fi
+}
+
+service_names() {
+  local dir="$1" name file
+  for name in compose.yaml compose.yml docker-compose.yaml docker-compose.yml; do
+    [[ -f "$dir/$name" ]] && file="$dir/$name" && break
+  done
+  awk '/^  [a-z0-9_-]+:$/ { sub(":", "", $1); print $1 }' "$file"
+}
+
+info_calls_so_far() {
+  grep -c '^info$' "$FAKE_DOCKER_LOG"
+}
+
+fake_info() {
+  if (( $(info_calls_so_far) <= ${FAKE_DOCKER_INFO_FAILURES:-0} )); then
+    printf 'Cannot connect to the Docker daemon\n' >&2
+    exit 1
+  fi
+}
+
+compose_hashes() {
+  local dir="$1" file name digest
+  for name in compose.yaml compose.yml docker-compose.yaml docker-compose.yml; do
+    [[ -f "$dir/$name" ]] && file="$dir/$name" && break
+  done
+  digest="$( (cat "$file"; [[ -f "$dir/.env" ]] && cat "$dir/.env") | md5sum | cut -c1-12)"
+  awk '/^  [a-z0-9_-]+:$/ { sub(":", "", $1); print $1 }' "$file" | while read -r service; do
+    printf '%s %s\n' "$service" "$digest"
+  done
+}
+
+running_hash() {
+  containers_fixture | awk -v p="$1" -v s="$2" '$2 == p && $3 == s { print $6 }'
+}
+
+container_name_of() {
+  local dir="$1" service="$2" file name
+  for name in compose.yaml compose.yml docker-compose.yaml docker-compose.yml; do
+    [[ -f "$dir/$name" ]] && file="$dir/$name" && break
+  done
+  awk -v s="$service" '
+    /^  [a-z0-9_-]+:$/ { current = $1; sub(":", "", current) }
+    current == s && /container_name:/ { print $2; found = 1 }
+    END { if (!found) print "" }' "$file"
+}
+
+dry_run_plan() {
+  local project="$1" dir="$2" service hash verb name
+  local -A desired=()
+  while read -r service hash; do
+    desired[$service]=1
+    name="$(container_name_of "$dir" "$service")"
+    name="${name:-$project-$service-1}"
+    if [[ -z "$(running_hash "$project" "$service")" ]]; then
+      verb=Creating
+    elif [[ "$(running_hash "$project" "$service")" != "$hash" ]]; then
+      verb=Recreate
+    else
+      verb=Running
+    fi
+    printf ' Container %s %s \n' "$name" "$verb" >&2
+  done < <(compose_hashes "$dir")
+  while read -r service; do
+    [[ -v "desired[$service]" ]] && continue
+    printf ' Container %s-%s-1 Removing \n' "$project" "$service" >&2
+  done < <(containers_fixture | awk -v p="$project" '$2 == p { print $3 }')
+}
+
+service_args() {
+  local previous="" subcommand="" arg
+  shift
+  for arg in "$@"; do
+    if [[ "$previous" == "-p" || "$previous" == "--project-directory" ||
+      "$previous" == "--progress" || "$previous" == "--pull" ||
+      "$previous" == "--format" ]]; then
+      previous=""
+      continue
+    fi
+    previous="$arg"
+    [[ "$arg" == -* ]] && continue
+    if [[ -z "$subcommand" ]]; then
+      subcommand="$arg"
+      continue
+    fi
+    printf '%s\n' "$arg"
+  done
+}
+
+refuse_unknown_services() {
+  local dir="$1" service
+  local -a known
+  shift
+  mapfile -t known < <(service_names "$dir")
+  while read -r service; do
+    if [[ " ${known[*]} " != *" $service "* ]]; then
+      printf 'no such service: %s\n' "$service" >&2
+      exit 1
+    fi
+  done < <(service_args "$@")
+}
+
+refuse_missing_env_file() {
+  local dir="$1"
+  if grep -q 'env_file: .env' "$dir"/*compose.y*ml && [[ ! -f "$dir/.env" ]]; then
+    printf 'env file %s/.env not found: stat %s/.env: no such file or directory\n' \
+      "$dir" "$dir" >&2
+    exit 1
+  fi
+}
+
+config_json() {
+  local dir="$1" file name
+  for name in compose.yaml compose.yml docker-compose.yaml docker-compose.yml; do
+    [[ -f "$dir/$name" ]] && file="$dir/$name" && break
+  done
+  awk '
+    /^  [a-z0-9_-]+:$/ { service = $1; sub(":", "", service); services[++n] = service; next }
+    service && /container_name:/ { names[service] = $2 }
+    service && /net.unraid.docker.icon/ {
+      icon = $0; sub(/.*net.unraid.docker.icon[=:] */, "", icon); icons[service] = icon
+    }
+    END {
+      for (i = 1; i <= n; i++) {
+        printf "%s\t%s\t%s\n", services[i], names[services[i]], icons[services[i]]
+      }
+    }' "$file" | jq -Rs 'split("\n") | map(select(. != "") | split("\t") |
+      {key: .[0], value: ({image: "x"}
+        + (if .[1] != "" then {container_name: .[1]} else {} end)
+        + (if .[2] != "" then {labels: {"net.unraid.docker.icon": .[2]}} else {} end))})
+      | {services: from_entries}'
+}
+
+fake_compose() {
+  local project subcommand
+  project="$(option_value -p "$@")"
+  subcommand="$(subcommand_of "$@")"
+  if listed FAKE_DOCKER_FAIL_STACKS "$project"; then
+    printf 'compose %s failed for %s\n' "$subcommand" "$project" >&2
+    exit 1
+  fi
+  if [[ "$subcommand" == config && "$*" == *"--hash=*"* ]]; then
+    compose_hashes "$(option_value --project-directory "$@")"
+    return 0
+  fi
+  refuse_unknown_services "$(option_value --project-directory "$@")" "$@"
+  if [[ "$subcommand" == config && "$*" == *"--format json"* ]]; then
+    refuse_missing_env_file "$(option_value --project-directory "$@")"
+    config_json "$(option_value --project-directory "$@")"
+    return 0
+  fi
+  if [[ "$subcommand" == up && "$*" == *"--dry-run"* ]] &&
+    listed FAKE_DOCKER_HANG_STACKS "$project"; then
+    sleep 5
+  fi
+  if [[ "$subcommand" == up && "$*" == *"--dry-run"* ]]; then
+    dry_run_plan "$project" "$(option_value --project-directory "$@")"
+    return 0
+  fi
+  if [[ "$subcommand" == pull ]] && listed FAKE_DOCKER_FAIL_PULL_STACKS "$project"; then
+    printf 'Error response from daemon: pull access denied for %s\n' "$project" >&2
+    exit 18
+  fi
+
+  printf 'compose %s ok for %s\n' "$subcommand" "$project"
+}
+
+all_filters() {
+  local previous="" arg
+  for arg in "$@"; do
+    [[ "$previous" == "--filter" ]] && printf '%s\n' "$arg"
+    previous="$arg"
+  done
+}
+
+fake_ps() {
+  local filter format service
+  filter="$(option_value --filter "$@")"
+  format="$(option_value --format "$@")"
+  service="$(all_filters "$@" | awk -F= '/^label=com.docker.compose.service=/ { print $3 }')"
+  case "$filter" in
+    label=com.docker.compose.project)
+      if [[ "$format" == *'.Label "com.docker.compose.project"'* ]]; then
+        containers_fixture | awk '{ print $2 }'
+      else
+        containers_fixture | awk '{ print $1 }'
+      fi
+      ;;
+    label=com.docker.compose.project=*)
+      if [[ "$format" == *'.Names'* ]]; then
+        containers_fixture | awk -v p="${filter#*=*=}" '$2 == p { print $2 "-" $3 "-1", $3 }'
+      else
+        containers_fixture | awk -v p="${filter#*=*=}" -v s="$service" \
+          '$2 == p && (s == "" || $3 == s) { print $1 }'
+      fi
+      ;;
+    ancestor=*)
+      containers_fixture | awk -v i="${filter#ancestor=}" '$5 == i { print $1 }'
+      ;;
+  esac
+}
+
+inspect_json() {
+  containers_fixture | awk -v ids=" $* " 'index(ids, " " $1 " ")' | jq -Rs '
+    split("\n") | map(select(. != "") | split(" ") | {
+      Id: .[0], Name: ("/" + .[1] + "-" + .[2] + "-1"), Image: .[4], Created: .[6],
+      State: {Status: "running", StartedAt: .[6]},
+      Config: {Image: .[3], Labels: {
+        "com.docker.compose.project": .[1], "com.docker.compose.service": .[2]}}})'
+}
+
+fake_inspect() {
+  shift
+  if [[ "${1:-}" != --format ]]; then
+    inspect_json "$@"
+    return 0
+  fi
+
+  local template="$2"
+  shift 2
+  case "$template" in
+    '{{.Image}}')
+      containers_fixture | awk -v ids=" $* " 'index(ids, " " $1 " ") { print $5 }'
+      ;;
+    *)
+      printf 'fake docker: unexpected inspect template\n' >&2
+      exit 2
+      ;;
+  esac
+}
+
+image_inspect_json() {
+  containers_fixture | awk -v ids=" $* " 'index(ids, " " $5 " ") { print $4, $5 }' | sort -u |
+    jq -Rs 'split("\n") | map(select(. != "") | split(" ") |
+      {Id: .[1], RepoDigests: [(.[0] | split(":")[0]) + "@" + .[1]]})'
+}
+
+fake_image() {
+  if [[ "$2" == inspect ]]; then
+    image_inspect_json "${@:3}"
+    return 0
+  fi
+  if [[ "$2" == rm ]] && listed FAKE_DOCKER_FAIL_IMAGE_RM "$3"; then
+    printf 'Error response from daemon: conflict: unable to delete %s\n' "$3" >&2
+    exit 1
+  fi
+}
+
+fake_stats() {
+  if [[ -n "${FAKE_DOCKER_FAIL_STATS:-}" ]]; then
+    printf 'stats failed\n' >&2
+    exit 1
+  fi
+  if [[ -n "${FAKE_DOCKER_STATS:-}" && -f "$FAKE_DOCKER_STATS" ]]; then
+    cat "$FAKE_DOCKER_STATS"
+  fi
+}
+
+case "${1:-}" in
+  info) fake_info ;;
+  stats) fake_stats ;;
+  compose) fake_compose "$@" ;;
+  ps) fake_ps "$@" ;;
+  inspect) fake_inspect "$@" ;;
+  image) fake_image "$@" ;;
+  *)
+    printf 'fake docker: unexpected command: %s\n' "$*" >&2
+    exit 2
+    ;;
+esac

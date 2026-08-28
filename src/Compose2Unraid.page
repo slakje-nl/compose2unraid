@@ -1,0 +1,279 @@
+Menu="Docker:3"
+Title="compose2unraid"
+Tag="cubes"
+Cond="is_file('/var/run/dockerd.pid')"
+Markdown="false"
+---
+<?php require_once '/usr/local/emhttp/plugins/compose2unraid/include/common.php'; ?>
+<style>
+.c2u-stack { table-layout: fixed; width: 100%; margin-bottom: 16px; }
+.c2u-col-name { width: 26%; }
+.c2u-col-stack { width: 12%; }
+.c2u-col-health { width: 11%; }
+.c2u-col-version { width: 14%; }
+.c2u-col-cpu { width: 11%; }
+.c2u-col-memory { width: 15%; }
+.c2u-col-uptime { width: 11%; }
+table.tablesorter.c2u-stack tbody tr td {
+  overflow-wrap: anywhere; line-height: normal; padding-top: 6px; padding-bottom: 6px;
+}
+.c2u-stack th.c2u-stack-name { text-transform: none; letter-spacing: normal; font-size: 1.2rem; }
+.c2u-stack th.c2u-stack-name .c2u-note { margin-left: 10px; font-weight: normal; }
+.c2u-meter { white-space: nowrap; text-align: left; }
+.c2u-usage { display: inline-block; }
+.c2u-bar {
+  display: block; width: 100%; height: 3px; margin-top: 4px;
+  background: rgba(128, 128, 128, 0.25);
+}
+.c2u-bar > span { display: block; height: 100%; background: currentColor; opacity: 0.6; }
+.c2u-stack th.c2u-stack-name a { font-weight: normal; }
+#c2u-help, #c2u-run {
+  max-width: 1000px; width: 92%; max-height: 90vh; border: none; border-radius: 4px;
+  padding: 20px 24px; color: inherit; background: var(--background-color, #f2f2f2);
+}
+#c2u-help::backdrop, #c2u-run::backdrop { background: rgba(0, 0, 0, 0.5); }
+#c2u-run { height: 70vh; }
+#c2u-run[open] { display: flex; flex-direction: column; }
+#c2u-run h3 { margin: 0 0 10px; }
+#c2u-run iframe { width: 100%; flex: 1; min-height: 0; border: none; background: transparent; }
+.c2u-actions { margin-top: 8px; }
+#c2u-help h3 { margin: 0 0 6px; }
+#c2u-help table { width: 100%; border-collapse: collapse; }
+#c2u-help th { text-align: left; padding: 14px 8px 4px; text-transform: uppercase; }
+#c2u-help td {
+  padding: 6px 8px; vertical-align: middle; border-top: 1px solid rgba(128, 128, 128, 0.25);
+}
+#c2u-help td:first-child { width: 30%; }
+#c2u-help td:last-child { width: 1%; }
+#c2u-help code { display: block; overflow-wrap: anywhere; }
+#c2u-help .c2u-help-actions { text-align: center; margin-top: 12px; }
+</style>
+
+<dialog id="c2u-run">
+  <h3 id="c2u-run-title"></h3>
+  <form id="c2u-run-form" method="POST" action="/plugins/compose2unraid/include/run.php"
+    target="c2u-run-frame">
+    <input type="hidden" name="csrf_token" value="<?= compose2unraid_h($var['csrf_token']) ?>">
+    <input type="hidden" name="action">
+    <input type="hidden" name="stack">
+    <input type="hidden" name="services">
+  </form>
+  <iframe id="c2u-run-frame" name="c2u-run-frame" title="Output"></iframe>
+</dialog>
+
+<dialog id="c2u-help">
+  <h3>Commands for <span id="c2u-help-stack"></span></h3>
+  <table id="c2u-help-commands"></table>
+  <div class="c2u-help-actions">
+    <input type="button" value="Close" onclick="document.getElementById('c2u-help').close()">
+  </div>
+</dialog>
+
+<div id="c2u-content"><p class="grey-text">Reading the stacks...</p></div>
+<div class="c2u-actions">
+  <input type="button" value="Check for updates" onclick="c2uCheckUpdates(this)">
+</div>
+
+<script>
+function c2uCopy(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text);
+    return;
+  }
+  var host = document.getElementById('c2u-help');
+  var scratch = document.createElement('textarea');
+  scratch.value = text;
+  scratch.setAttribute('readonly', '');
+  scratch.style.position = 'fixed';
+  scratch.style.opacity = '0';
+  host.appendChild(scratch);
+  scratch.focus();
+  scratch.select();
+  document.execCommand('copy');
+  host.removeChild(scratch);
+}
+
+function c2uShowCommands(stack, base) {
+  var dialog = document.getElementById('c2u-help');
+  var table = document.getElementById('c2u-help-commands');
+  var dir = base + '/stacks/' + stack;
+  var sections = [
+    ['Where it lives', [['Stack directory', dir], ['Secrets file, optional', dir + '/.env']]],
+    ['After syncing new files', [
+      ['Apply changes', 'docker compose up -d --remove-orphans'],
+      ['Recreate everything', 'docker compose up -d --force-recreate --remove-orphans']
+    ]],
+    ['Images', [['Update images', 'docker compose pull && docker compose up -d --remove-orphans']]],
+    ['Remove', [
+      ['Remove with volumes', 'docker compose -p ' + stack + ' down --remove-orphans --volumes']
+    ]]
+  ];
+  document.getElementById('c2u-help-stack').textContent = stack;
+  table.innerHTML = '';
+  sections.forEach(function (section) {
+    var heading = document.createElement('tr');
+    var cell = document.createElement('th');
+    cell.colSpan = 3;
+    cell.textContent = section[0];
+    heading.appendChild(cell);
+    table.appendChild(heading);
+    section[1].forEach(function (row) {
+      var tr = document.createElement('tr');
+      var what = document.createElement('td');
+      what.textContent = row[0];
+      var command = document.createElement('td');
+      var code = document.createElement('code');
+      code.textContent = row[1];
+      command.appendChild(code);
+      var action = document.createElement('td');
+      var copy = document.createElement('input');
+      copy.type = 'button';
+      copy.value = 'Copy';
+      copy.onclick = function () {
+        c2uCopy(row[1]);
+        copy.value = 'Copied';
+      };
+      action.appendChild(copy);
+      tr.appendChild(what);
+      tr.appendChild(command);
+      tr.appendChild(action);
+      table.appendChild(tr);
+    });
+  });
+  dialog.showModal();
+}
+
+function c2uTitle(action, stack, services) {
+  var verbs = {apply: 'Syncing', update: 'Updating', start: 'Starting', stop: 'Stopping',
+    restart: 'Restarting', diff: 'Changes for', recreate: 'Recreating'};
+  if (services === '') { return verbs[action] + ' ' + stack; }
+  return verbs[action] + ' ' + services.split(' ').join(', ') + ' in ' + stack;
+}
+
+function c2uCheckUpdates(button) {
+  button.disabled = true;
+  button.value = 'Checking...';
+  $.post('/plugins/dynamix.docker.manager/include/DockerUpdate.php', {}).always(function () {
+    button.disabled = false;
+    button.value = 'Check for updates';
+    c2uRefresh();
+  });
+}
+
+function c2uRun(action, stack, services) {
+  var form = document.getElementById('c2u-run-form');
+  document.getElementById('c2u-run-title').textContent = c2uTitle(action, stack, services);
+  form.elements.action.value = action;
+  form.elements.stack.value = stack;
+  form.elements.services.value = services;
+  document.getElementById('c2u-run').showModal();
+  form.submit();
+}
+
+function c2uMenu(icon) {
+  var data = icon.dataset;
+  var opts = [];
+  function run(action, services) {
+    return function (event) { event.preventDefault(); c2uRun(action, data.stack, services); };
+  }
+  function othersFlagged() {
+    return data.flagged.split(' ').some(function (s) { return s !== '' && s !== data.service; });
+  }
+  if (data.files === '1' && data.state !== '' && data.running !== '0') {
+    opts.push({header: 'Container'});
+    if (data.state === 'running') {
+      opts.push({text: 'Stop', icon: 'fa-stop', action: run('stop', data.service)});
+    } else {
+      opts.push({text: 'Start', icon: 'fa-play', action: run('start', data.service)});
+    }
+    opts.push({text: 'Restart', icon: 'fa-refresh', action: run('restart', data.service)});
+    opts.push({text: 'Logs', icon: 'fa-navicon', action: function (event) {
+      event.preventDefault();
+      openTerminal('docker', data.name, '.log');
+    }});
+    if (data.update === '1') {
+      opts.push({text: data.state === 'running' ? 'Update and restart' : 'Update and start',
+        icon: 'fa-cloud-download', action: run('update', data.service)});
+    }
+  }
+  if (data.files === '1') {
+    opts.push({header: 'Stack'});
+    if (data.running !== '0') {
+      opts.push({text: 'Stop stack', icon: 'fa-stop', action: run('stop', '')});
+      opts.push({text: 'Restart stack', icon: 'fa-refresh', action: run('restart', '')});
+    } else if (data.containers !== '0') {
+      opts.push({text: 'Start stack', icon: 'fa-play', action: run('start', '')});
+      opts.push({text: 'Restart stack', icon: 'fa-refresh', action: run('restart', '')});
+    }
+    if (data.containers !== '0') {
+      opts.push({text: 'Recreate stack', icon: 'fa-recycle', action: run('recreate', '')});
+    }
+    if (data.drift === 'changed' || data.drift === 'new') {
+      opts.push({text: 'Show diff', icon: 'fa-list', action: run('diff', '')});
+      opts.push({text: 'Sync stack', icon: 'fa-hdd-o', action: run('apply', '')});
+    }
+    if (othersFlagged()) {
+      opts.push({text: 'Update images', icon: 'fa-cloud-download',
+        action: run('update', data.flagged)});
+    }
+  } else {
+    opts.push({header: 'Not in stacks'});
+  }
+  opts.push({text: 'Stack commands', icon: 'fa-terminal', action: function (event) {
+    event.preventDefault();
+    c2uShowCommands(data.stack, data.base);
+  }});
+  context.settings({right: false, above: 'auto'});
+  context.attach('#' + icon.id, opts);
+}
+
+function c2uRunDone() {
+  document.getElementById('c2u-run').close();
+}
+
+document.addEventListener('click', function (event) {
+  var link = event.target.closest('a.c2u-commands, a.c2u-run');
+  if (!link) { return; }
+  event.preventDefault();
+  if (link.classList.contains('c2u-run')) {
+    c2uRun(link.dataset.action, link.dataset.stack, link.dataset.services || '');
+  } else {
+    c2uShowCommands(link.dataset.stack, link.dataset.base);
+  }
+});
+
+var c2uRefresh;
+(function () {
+  var content = document.getElementById('c2u-content');
+  var timer = null;
+  var statsLoaded = false;
+  function refresh() {
+    if (document.hidden) { schedule(); return; }
+    var url = '/plugins/compose2unraid/include/stacks.php' + (statsLoaded ? '' : '?stats=0');
+    fetch(url, { cache: 'no-store' })
+      .then(function (response) { return response.text(); })
+      .then(function (html) {
+        var fresh = document.createElement('div');
+        fresh.innerHTML = html;
+        var next = fresh.firstElementChild;
+        content.replaceWith(next);
+        content = next;
+        if (statsLoaded) { schedule(); return; }
+        statsLoaded = true;
+        refresh();
+      })
+      .catch(schedule);
+  }
+  function schedule() {
+    clearTimeout(timer);
+    timer = setTimeout(refresh, 15000);
+  }
+  c2uRefresh = function () { clearTimeout(timer); refresh(); };
+  document.getElementById('c2u-run').addEventListener('close', function () {
+    document.getElementById('c2u-run-frame').src = 'about:blank';
+    c2uRefresh();
+  });
+  document.getElementById('c2u-help').addEventListener('close', c2uRefresh);
+  refresh();
+})();
+</script>
