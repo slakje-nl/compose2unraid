@@ -42,13 +42,17 @@ refuse($page, '/<table class="tablesorter c2u-stack"/', 'the page does not run s
 expect($page, 'name="csrf_token" value="token"', 'the run form carries the csrf token');
 expect($page, 'id="c2u-help"', 'the commands dialog is there');
 expect($page, 'id="c2u-run-title"', 'the run dialog has a title like the popup');
+expect($page, 'value="Refresh stacks" onclick="c2uRefreshStacks(this)"', 'a refresh stacks button sits below the tables');
 expect($page, 'value="Check for updates"', 'a check for updates button sits below the tables');
+expect($page, "setTimeout(function () { refresh(false); }, 5000)", 'container state ticks every five seconds without drift');
+expect($page, "(drift ? '' : '?drift=0')", 'a tick asks the fragment to skip the dry run');
+expect($page, "refresh(true);\n})();", 'the first load checks drift');
 expect($page, "'/plugins/dynamix.docker.manager/include/DockerUpdate.php'", 'it calls what the Docker tab calls');
 expect($page, "context.attach('#' + icon.id, opts)", 'the menu is the Unraid context menu');
 expect($page, "context.settings({right: false, above: 'auto'})", 'the menu opens above the icon when it would not fit below');
 expect($page, "openTerminal('docker', data.name, '.log')", 'logs open in Unraid\'s own log window');
 expect($page, '#c2u-help th { text-align: left;', 'the commands popup keeps its own table style');
-expect($page, "getElementById('c2u-help').addEventListener('close', c2uRefresh)", 'closing the commands popup refreshes');
+expect($page, "getElementById('c2u-help').addEventListener('close', function () { c2uRefresh(false); })", 'closing the commands popup refreshes without a dry run');
 expect($page, "getElementById('c2u-run').addEventListener('close'", 'closing the run dialog refreshes, however it is closed');
 expect($page, "if (!response.ok) { throw new Error(", 'a failed fetch keeps the table it has instead of showing the error page');
 
@@ -110,12 +114,15 @@ refuse($fragment, '/Uptime:|Created:/', 'the uptime cell is the duration alone')
 expect($fragment, '<span class="red-text"><i class="fa fa-times-circle"></i> stopped</span>', 'a container that is not running is stopped, whatever its healthcheck');
 expect($fragment, '<span class="grey-text"><i class="fa fa-minus-circle"></i> n/a</span>', 'a running container without a healthcheck is n/a');
 expect($fragment, '<span class="green-text"><i class="fa fa-check-circle"></i> healthy</span>', 'a healthy container is healthy');
-$_GET = ['stats' => '0'];
+refuse($fragment, '/not checked/', 'after a check every stack on disk has a state');
+$_GET = ['drift' => '0'];
 $quick = render('/usr/local/emhttp/plugins/compose2unraid/include/stacks.php');
 $_GET = [];
-expect($quick, 'loading...', 'the first pass shows a placeholder for a running container');
-refuse($quick, '/c2u-bar/', 'the first pass has no bars');
-expect($quick, '<span class="appname">alpha-app-1</span>', 'the first pass has the stacks');
+$notChecked = '<span class="grey-text" title="This stack appeared after the last check. Click Refresh stacks."><i class="fa fa-question-circle"></i> not checked</span>';
+expect($quick, '<td>' . $notChecked . '</td>', 'a container of a stack not checked yet says so on its row');
+expect($quick, '<span class="c2u-note">' . $notChecked . '</span>', 'a stack not checked yet and without rows says so in its header');
+expect($quick, 'data-drift="unknown"', 'the menu knows the stack was not checked');
+expect($quick, '<span class="appname">alpha-app-1</span>', 'a tick has the stacks');
 
 $run = (string) file_get_contents('/usr/local/emhttp/plugins/compose2unraid/include/run.php');
 $defined = strpos($run, 'function c2uLine(');

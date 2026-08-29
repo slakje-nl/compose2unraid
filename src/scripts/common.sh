@@ -6,6 +6,7 @@ SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FLASH_DIR="${COMPOSE2UNRAID_FLASH_DIR:-/boot/config/plugins/$PLUGIN_NAME}"
 LOG_DIR="${COMPOSE2UNRAID_LOG_DIR:-/var/log/$PLUGIN_NAME}"
 LOCK_FILE="${COMPOSE2UNRAID_LOCK_FILE:-/var/lock/$PLUGIN_NAME.lock}"
+CACHE_DIR="${COMPOSE2UNRAID_CACHE_DIR:-/var/cache/$PLUGIN_NAME}"
 DEFAULT_CFG="$SCRIPTS_DIR/../default.cfg"
 CFG_FILE="$FLASH_DIR/$PLUGIN_NAME.cfg"
 LOG_FILE="$LOG_DIR/$PLUGIN_NAME.log"
@@ -38,7 +39,7 @@ load_config() {
   base="$(configured_base_path)"
   validate_base_path "$base"
   STACKS_DIR="${base%/}/stacks"
-  mkdir -p "$LOG_DIR"
+  mkdir -p "$LOG_DIR" "$CACHE_DIR"
 }
 
 syslog_priority() {

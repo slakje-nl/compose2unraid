@@ -71,6 +71,7 @@ table.tablesorter.c2u-stack tbody tr td {
 
 <div id="c2u-content"><p class="grey-text">Reading the stacks...</p></div>
 <div class="c2u-actions">
+  <input type="button" value="Refresh stacks" onclick="c2uRefreshStacks(this)">
   <input type="button" value="Check for updates" onclick="c2uCheckUpdates(this)">
 </div>
 
@@ -150,13 +151,22 @@ function c2uTitle(action, stack, services) {
   return verbs[action] + ' ' + services.split(' ').join(', ') + ' in ' + stack;
 }
 
+function c2uRefreshStacks(button) {
+  button.disabled = true;
+  button.value = 'Checking...';
+  c2uRefresh(true, function () {
+    button.disabled = false;
+    button.value = 'Refresh stacks';
+  });
+}
+
 function c2uCheckUpdates(button) {
   button.disabled = true;
   button.value = 'Checking...';
   $.post('/plugins/dynamix.docker.manager/include/DockerUpdate.php', {}).always(function () {
     button.disabled = false;
     button.value = 'Check for updates';
-    c2uRefresh();
+    c2uRefresh(false);
   });
 }
 
@@ -246,37 +256,46 @@ var c2uRefresh;
 (function () {
   var content = document.getElementById('c2u-content');
   var timer = null;
-  var statsLoaded = false;
-  function refresh() {
-    if (document.hidden) { schedule(); return; }
-    var url = '/plugins/compose2unraid/include/stacks.php' + (statsLoaded ? '' : '?stats=0');
+  var latest = 0;
+  var driftWanted = true;
+  function refresh(withDrift, done) {
+    driftWanted = driftWanted || withDrift;
+    if (document.hidden) {
+      schedule();
+      if (done) { done(); }
+      return;
+    }
+    var request = ++latest;
+    var drift = driftWanted;
+    var url = '/plugins/compose2unraid/include/stacks.php' + (drift ? '' : '?drift=0');
     fetch(url, { cache: 'no-store' })
       .then(function (response) {
         if (!response.ok) { throw new Error('stacks.php answered ' + response.status); }
         return response.text();
       })
       .then(function (html) {
+        if (request !== latest) { return; }
         var fresh = document.createElement('div');
         fresh.innerHTML = html;
         var next = fresh.firstElementChild;
         content.replaceWith(next);
         content = next;
-        if (statsLoaded) { schedule(); return; }
-        statsLoaded = true;
-        refresh();
+        if (drift) { driftWanted = false; }
+        schedule();
       })
-      .catch(schedule);
+      .catch(function () { if (request === latest) { schedule(); } })
+      .finally(function () { if (done) { done(); } });
   }
   function schedule() {
     clearTimeout(timer);
-    timer = setTimeout(refresh, 15000);
+    timer = setTimeout(function () { refresh(false); }, 5000);
   }
-  c2uRefresh = function () { clearTimeout(timer); refresh(); };
+  c2uRefresh = function (withDrift, done) { clearTimeout(timer); refresh(withDrift, done); };
   document.getElementById('c2u-run').addEventListener('close', function () {
     document.getElementById('c2u-run-frame').src = 'about:blank';
-    c2uRefresh();
+    c2uRefresh(true);
   });
-  document.getElementById('c2u-help').addEventListener('close', c2uRefresh);
-  refresh();
+  document.getElementById('c2u-help').addEventListener('close', function () { c2uRefresh(false); });
+  refresh(true);
 })();
 </script>

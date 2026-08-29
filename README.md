@@ -58,6 +58,8 @@ for every container it still has, so a stack is listed as soon as its files are 
   runs. This is Compose's own dry run of the files on disk; **Show diff** names the containers.
 - **removed on disk** (orange): the service is no longer in the file.
 - **not deployed** (grey): the service is in the file but has no container yet.
+- **not checked** (grey): the stack appeared on disk after the last check; click **Refresh
+  stacks**.
 - **no files** (red): the container was started from a directory under `stacks/` that is no
   longer there. Compose projects you run from anywhere else are not the plugin's business and are
   not listed.
@@ -72,9 +74,11 @@ Unraid's own **Check for Updates** found a newer one; CPU as a share of the whol
 uptime. The badge clears as soon as the image on the box carries the digest Unraid saw, without
 waiting for the next check.
 
-The page appears at once, fills in CPU and memory a moment later, and refreshes in place every
-fifteen seconds while the tab is visible. A **Check for updates** button below the tables runs
-the same check as the Docker tab's button.
+Container state, health, CPU, memory and uptime refresh in place every five seconds while the
+tab is visible. Whether the files still match what runs is Compose's own dry run, one compose
+process per stack, so it is checked when the page opens, after every action, and when you click
+**Refresh stacks** below the tables; a stack synced to disk since then says **not checked**
+until you do. **Check for updates** next to it runs the same check as the Docker tab's button.
 
 ### The icon menu
 

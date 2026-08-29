@@ -175,10 +175,15 @@ These are written in the README and every change must keep them true.
 - **Compose is always invoked the same way**: `docker compose --project-directory <stack dir>
   -p <stack name> ...`, through one `compose()` function in `common.sh`. The project name is the
   directory name, always.
-- **The page refreshes in place.** The page renders at once with a placeholder div and fetches
-  `include/stacks.php?stats=0` immediately (`status.sh --without-stats`, no `docker stats`
-  sample, so the table is up in well under a second), then the full fragment right after, then
-  every fifteen seconds (never while the tab is hidden), replacing that div each time. Nothing
+- **The page refreshes in place, and drift only on demand.** The page renders at once with a
+  placeholder div and fetches `include/stacks.php` (a full `status.sh`: containers, stats and
+  the dry run per stack), then `stacks.php?drift=0` every five seconds while the tab is
+  visible (`status.sh --without-drift`: `docker inspect` and `docker stats` only, no compose
+  process at all), replacing that div each time. A full run writes what it found per stack to
+  `/var/cache/compose2unraid/<stack>.json` and a tick reads it back; a stack on disk with no
+  file there is `unknown` ("not checked") and a file whose stack left the disk is removed by the
+  next full run. A full run happens on load, when a dialog closes, and from the Refresh stacks
+  button; a request counter drops a tick's answer that arrives after a newer request. Nothing
   on the page itself runs `status.sh`. No timed reload.
 - **Logging is one function**, `log`, which writes to `/var/log/compose2unraid/compose2unraid.log`
   and to syslog via `logger -t compose2unraid`, and it records actions and their failures only:
@@ -192,6 +197,7 @@ Where things live on the box:
 /boot/config/plugins/compose2unraid/     config and the downloaded compose binary (flash)
 <base path>/stacks/<name>/               one directory per stack, synced by the user
 /var/log/compose2unraid/                 the plugin log (tmpfs)
+/var/cache/compose2unraid/               the drift the page last computed, one JSON per stack (tmpfs)
 /usr/local/emhttp/plugins/compose2unraid/  installed page, PHP and scripts (tmpfs)
 ```
 
