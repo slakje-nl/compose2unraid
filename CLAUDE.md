@@ -73,7 +73,8 @@ CI.
   the logic; only a pasted result from a real install proves the plugin.
 - **Six verbs, each one compose command.** The icon menu can apply a stack (`up -d
   --remove-orphans`, "Sync stack"), recreate it (`up -d --force-recreate --remove-orphans`),
-  update services (`pull` then `up -d` of those, offered only for an image Unraid flagged), and
+  update services (`pull` then `up -d --no-deps` of those, offered only for an image Unraid
+  flagged), and
   start, stop or restart services; the header carries no links. "Show diff" is the same dry run
   the status uses and changes nothing. Nothing else changes a container from the page: no
   `down`, no volume removal, no image removal beyond the one an update replaced. Those stay
@@ -121,8 +122,9 @@ These are written in the README and every change must keep them true.
   file defines (`compose config --format json`: name, container name, icon label) so the page
   can list a stack before it runs; `include/stacks.php` turns it into the table.
   `apply.sh <stack>` brings a stack up according to its drift;
-  `apply.sh <stack> --pull <service>...` pulls and recreates exactly those services and removes
-  the images they replaced when nothing else uses them; `--recreate` forces every container;
+  `apply.sh <stack> --pull <service>...` pulls and recreates exactly those services, `--no-deps`
+  so a drifted dependency stays as it is, and removes the images they replaced when nothing else
+  uses them; `--recreate` forces every container;
   `--start`, `--stop` and `--restart` pass the services, or the whole stack when none is named,
   to that compose verb. All take the boot hook's `flock`. `--diff` prints the dry run's plan and
   takes no lock.
