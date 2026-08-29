@@ -251,7 +251,10 @@ var c2uRefresh;
     if (document.hidden) { schedule(); return; }
     var url = '/plugins/compose2unraid/include/stacks.php' + (statsLoaded ? '' : '?stats=0');
     fetch(url, { cache: 'no-store' })
-      .then(function (response) { return response.text(); })
+      .then(function (response) {
+        if (!response.ok) { throw new Error('stacks.php answered ' + response.status); }
+        return response.text();
+      })
       .then(function (html) {
         var fresh = document.createElement('div');
         fresh.innerHTML = html;

@@ -50,6 +50,7 @@ expect($page, "openTerminal('docker', data.name, '.log')", 'logs open in Unraid\
 expect($page, '#c2u-help th { text-align: left;', 'the commands popup keeps its own table style');
 expect($page, "getElementById('c2u-help').addEventListener('close', c2uRefresh)", 'closing the commands popup refreshes');
 expect($page, "getElementById('c2u-run').addEventListener('close'", 'closing the run dialog refreshes, however it is closed');
+expect($page, "if (!response.ok) { throw new Error(", 'a failed fetch keeps the table it has instead of showing the error page');
 
 $fragment = render('/usr/local/emhttp/plugins/compose2unraid/include/stacks.php');
 expect($fragment, '<th>Stack</th><th>Health</th>', 'a stack column sits before health');
