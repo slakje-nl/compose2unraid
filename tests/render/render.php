@@ -215,7 +215,8 @@ $logs = stream('/usr/local/emhttp/plugins/compose2unraid/include/logs.php', ['cs
 expect($logs, 'c2uLine("first line of alpha-app-1\n")', 'the popup streams the container\'s log lines');
 expect($logs, 'c2uLine("second line\n")', 'every line arrives');
 expect($logs, 'The log ended', 'the popup says when the log ends');
-expect($logs, 'onclick="parent.Shadowbox.close()"', 'the popup closes Unraid\'s dialog');
+expect($logs, '<div class="actions"><input type="button" value="Close" onclick="parent.Shadowbox.close()"></div>' . "\n" . '<pre id="output">', 'the popup has its Close button before the first line, since a followed log never ends');
+expect($logs, '.actions { order: 3;', 'the Close button sits at the bottom');
 $badLogs = stream('/usr/local/emhttp/plugins/compose2unraid/include/logs.php', ['csrf_token' => 'token', 'name' => 'a; rm -rf /']);
 expect($badLogs, 'That is not a container name.', 'a bad container name is refused');
 refuse($badLogs, '/c2uLine/', 'a refused log streams nothing');

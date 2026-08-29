@@ -38,8 +38,9 @@ pre {
   white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.9em;
   background: rgba(128, 128, 128, 0.12); border-radius: 3px;
 }
-.done { margin: 10px 0 0; }
-.actions { text-align: center; margin-top: 12px; }
+pre { order: 1; }
+.done { order: 2; margin: 10px 0 0; }
+.actions { order: 3; text-align: center; margin-top: 12px; }
 </style>
 <script>
 function c2uLine(line) {
@@ -51,6 +52,7 @@ function c2uLine(line) {
 </script>
 </head>
 <body>
+<div class="actions"><input type="button" value="Close" onclick="parent.Shadowbox.close()"></div>
 <pre id="output"></pre>
 <?php
 compose2unraid_start_streaming();
@@ -66,6 +68,5 @@ $verdict = match (true) {
 };
 ?>
 <p class="done <?= $exitCode === 0 ? 'green-text' : 'red-text' ?>"><?= $verdict ?></p>
-<div class="actions"><input type="button" value="Done" onclick="parent.Shadowbox.close()"></div>
 </body>
 </html>
