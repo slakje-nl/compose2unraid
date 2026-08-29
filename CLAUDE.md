@@ -167,8 +167,10 @@ These are written in the README and every change must keep them true.
 - **Image updates come from Unraid.** `/var/lib/docker/unraid-update-status.json`, written by the
   Docker tab's Check for Updates, covers every container on the box, template or not. The page's
   Check for updates button posts to the same `DockerUpdate.php` the Docker tab posts to. The page
-  reads it and mirrors Unraid's own normalisation of image names (`docker.io/` stripped,
-  `library/` for official images, `:latest` when there is no tag). A container whose image
+  reads it and keys it the way Unraid's `parseImageTag` does for the common shapes
+  (`docker.io/` stripped, `library/` for official images, `:latest` when there is no tag); a
+  registry with a port or a digest reference may key differently on Unraid's side, and then
+  simply shows no badge. A container whose image
   carries the `remote` digest from that file is up to date whatever the file's `status` says,
   which is how the badge clears right after an update.
 - **Config is an Unraid `.cfg`** with one key, `BASE_PATH`, at
@@ -286,12 +288,12 @@ dist/                            build output, gitignored
 - **Split the action from the validation.** Run the script in its own statement, then assert on
   `$status`, `$output` and the files it wrote.
 - **Cover every state the page can show**: new, changed (a service added, removed, or edited),
-  insync, gone, broken, and apply on a stack without an `.env`; the hook with a failing stack, an
+  insync, gone, broken, unknown (a tick before the next full run), and apply on a stack without an `.env`; the hook with a failing stack, an
   empty stacks directory, a slow daemon and
   a held lock; apply for each drift state, a refused stack, a compose failure; update pulling
   only the named services, an unknown service, a failed pull, a replaced image still in use.
 - **The page is rendered in the test too.** `just test-render` runs the page and the fragment in
-  the `php:cli` container against `tests/render/`: a `status.sh` stub in plain `sh` that prints a
+  the `php:8.3-cli` container against `tests/render/`: a `status.sh` stub in plain `sh` that prints a
   fixed status, a stub of Unraid's `parse_plugin_cfg`, and a stub update-status file. A fatal
   fails it, and it asserts every state and link the page can show. `php -l` alone missed a call
   before its include once; this is what catches that class.
