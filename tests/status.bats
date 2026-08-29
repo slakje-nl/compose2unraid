@@ -51,15 +51,30 @@ teardown() {
   [ "$(printf '%s' "$output" | jq -c '[.stacks[] | [.name, .drift]]')" = '[["alpha","insync"],["gone","gone"]]' ]
 }
 
-@test "status fails when docker fails, rather than showing a partial table" {
+@test "a failed stats sample leaves the usage columns empty rather than failing the page" {
   make_stack alpha
   add_running alpha
   export FAKE_DOCKER_FAIL_STATS=1
 
   run status_json
 
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"stats failed"* ]]
+  [ "$status" -eq 0 ]
+  [ "$(printf '%s' "$output" | jq -c '.stats')" = '[]' ]
+  [ "$(printf '%s' "$output" | jq -r '.containers | length')" = "1" ]
+}
+
+@test "a container removed between listing and inspecting is left out, the rest is shown" {
+  make_stack alpha
+  add_running alpha
+  make_stack beta
+  add_running beta
+  export FAKE_DOCKER_VANISHED=c-beta-app
+
+  run status_json
+
+  [ "$status" -eq 0 ]
+  [ "$(printf '%s' "$output" | jq -c '[.containers[].stack]')" = '["alpha"]' ]
+  [ "$(printf '%s' "$output" | jq -c '[.stacks[] | [.name, .drift]]')" = '[["alpha","insync"],["beta","insync"]]' ]
 }
 
 @test "status can skip the stats sample for a quick first page" {

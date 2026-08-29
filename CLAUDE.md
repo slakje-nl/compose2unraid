@@ -116,6 +116,10 @@ These are written in the README and every change must keep them true.
   to `document`, opens it, above the icon when it would not fit below (`above: 'auto'`). Items post
   through the same form.
 - **A broken stack is shown as such and the others are unaffected**, at boot and on the page.
+  `status.sh` also tolerates a container that disappears between listing and inspecting (a sync
+  in another tab), and a failed `docker stats` sample only empties the usage columns. Any other
+  docker failure still fails the whole status, shown as one red line, rather than a table
+  missing half its rows.
 
 ## Architecture
 

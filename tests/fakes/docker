@@ -249,8 +249,26 @@ fake_ps() {
   esac
 }
 
+present() {
+  local id
+  for id in "$@"; do
+    listed FAKE_DOCKER_VANISHED "$id" || printf '%s\n' "$id"
+  done
+}
+
+complain_about_vanished() {
+  local id found=0
+  for id in "$@"; do
+    if listed FAKE_DOCKER_VANISHED "$id"; then
+      printf 'Error: No such object: %s\n' "$id" >&2
+      found=1
+    fi
+  done
+  (( found == 0 ))
+}
+
 inspect_json() {
-  containers_fixture | awk -v ids=" $* " 'index(ids, " " $1 " ")' | jq -Rs '
+  containers_fixture | awk -v ids=" $(present "$@" | tr '\n' ' ') " 'index(ids, " " $1 " ")' | jq -Rs '
     split("\n") | map(select(. != "") | split(" ") | {
       Id: .[0], Name: ("/" + .[1] + "-" + .[2] + "-1"), Image: .[4], Created: .[6],
       State: {Status: "running", StartedAt: .[6]},
@@ -262,7 +280,8 @@ fake_inspect() {
   shift
   if [[ "${1:-}" != --format ]]; then
     inspect_json "$@"
-    return 0
+    complain_about_vanished "$@"
+    return
   fi
 
   local template="$2"
@@ -303,11 +322,12 @@ fake_stats() {
   if [[ -n "${FAKE_DOCKER_STATS:-}" && -f "$FAKE_DOCKER_STATS" ]]; then
     cat "$FAKE_DOCKER_STATS"
   fi
+  complain_about_vanished "${@:2}"
 }
 
 case "${1:-}" in
   info) fake_info ;;
-  stats) fake_stats ;;
+  stats) fake_stats "$@" ;;
   compose) fake_compose "$@" ;;
   ps) fake_ps "$@" ;;
   inspect) fake_inspect "$@" ;;
