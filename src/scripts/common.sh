@@ -38,7 +38,7 @@ load_config() {
   base="$(configured_base_path)"
   validate_base_path "$base"
   STACKS_DIR="${base%/}/stacks"
-  mkdir -p "$LOG_DIR" "$STACKS_DIR"
+  mkdir -p "$LOG_DIR"
 }
 
 syslog_priority() {

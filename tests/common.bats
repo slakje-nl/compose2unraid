@@ -25,16 +25,6 @@ teardown() {
   done
 }
 
-@test "config creates the stacks directory so the first sync has somewhere to land" {
-  rm -r "$STACKS"
-
-  run bash -c "source '$SCRIPTS/common.sh'; load_config; stacks"
-
-  [ "$status" -eq 0 ]
-  [ -d "$STACKS" ]
-  [ "$output" = "" ]
-}
-
 @test "config works without a flash file at all" {
   rm "$COMPOSE2UNRAID_FLASH_DIR/compose2unraid.cfg"
 
