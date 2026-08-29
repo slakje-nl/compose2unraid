@@ -51,17 +51,34 @@ gone_entries() {
   done < <(projects_started_from_stacks)
 }
 
+tolerating_vanished() {
+  local errors="$WORK/errors-$1"
+  shift
+  "$@" 2> "$errors" || ! grep -qvE 'No such (object|container)' "$errors"
+}
+
+images_of() {
+  local -a images
+  mapfile -t images < <(jq -r '.[].Image' "$1" | sort -u)
+  if (( ${#images[@]} == 0 )); then
+    printf '[]'
+    return 0
+  fi
+
+  tolerating_vanished image docker image inspect "${images[@]}"
+}
+
 containers() {
-  local -a ids images
+  local -a ids
   mapfile -t ids < <(docker ps -aq --filter "label=$COMPOSE_PROJECT_LABEL")
   if (( ${#ids[@]} == 0 )); then
     printf '[]'
     return 0
   fi
 
-  docker inspect "${ids[@]}" > "$WORK/inspect"
-  mapfile -t images < <(jq -r '.[].Image' "$WORK/inspect" | sort -u)
-  jq --slurpfile images <(docker image inspect "${images[@]}") '
+  tolerating_vanished inspect docker inspect "${ids[@]}" > "$WORK/inspect"
+  images_of "$WORK/inspect" > "$WORK/images"
+  jq --slurpfile images "$WORK/images" '
     ($images[0] | map({key: .Id, value: [.RepoDigests[] | split("@")[1]]}) | from_entries)
       as $digests
     | map({id: .Id, name: .Name,
@@ -76,8 +93,14 @@ containers() {
 stats() {
   local -a ids
   mapfile -t ids < <(docker ps -q --filter "label=$COMPOSE_PROJECT_LABEL")
-  if (( ${#ids[@]} > 0 )); then
-    docker stats --no-stream --format '{{json .}}' "${ids[@]}"
+  (( ${#ids[@]} > 0 )) || return 0
+
+  tolerating_vanished stats docker stats --no-stream --format '{{json .}}' "${ids[@]}"
+}
+
+sample_stats() {
+  if ! stats > "$WORK/stats"; then
+    : > "$WORK/stats"
   fi
 }
 
@@ -94,7 +117,7 @@ collect_in_parallel() {
   local stack pid
   containers > "$WORK/containers" & pids+=($!)
   if (( WITH_STATS )); then
-    stats > "$WORK/stats" & pids+=($!)
+    sample_stats & pids+=($!)
   else
     : > "$WORK/stats"
   fi
