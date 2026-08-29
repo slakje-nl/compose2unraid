@@ -12,7 +12,7 @@ deploy from a terminal. It does two things:
 
 1. **Brings your stacks up when Docker starts**, including after Settings, Docker, off and on,
    without touching the network. This is the part that has to be a plugin.
-2. **Shows them under the Docker menu**: every stack with its containers, health, version, CPU,
+2. **Shows them on a Compose tab next to Docker**: every stack with its containers, health, version, CPU,
    memory and uptime, whether what runs still matches the files on disk, and whether Unraid found
    a newer image. Each row's icon opens the same kind of menu as on the Docker tab, and every
    entry in it is one `docker compose` command whose output streams into a dialog.
@@ -136,8 +136,8 @@ https://github.com/slakje-nl/compose2unraid/releases/latest/download/compose2unr
 
 The plugin downloads a static `docker compose` release once (pinned by version and SHA-256),
 keeps it on the flash drive, and installs it to `/usr/local/lib/docker/cli-plugins/` at every
-boot. That is the `docker compose` the box uses; uninstalling removes it again. The page appears
-under **Docker, compose2unraid** while Docker runs.
+boot. That is the `docker compose` the box uses; uninstalling removes it again. The page is the
+**Compose** tab in the top bar, between Docker and VMs, shown while Docker runs.
 
 The only setting is the base path, `/mnt/user/appdata/compose2unraid` by default. To change it,
 put `BASE_PATH="/mnt/cache/compose2unraid"` in

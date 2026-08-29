@@ -1,5 +1,5 @@
-Menu="Docker:3"
-Title="compose2unraid"
+Menu="Tasks:65"
+Title="Compose"
 Tag="cubes"
 Cond="is_file('/var/run/dockerd.pid')"
 Markdown="false"
