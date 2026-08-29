@@ -19,7 +19,7 @@
 ##&name;
 
 ###&version;
-- Release notes live at https://github.com/slakje-nl/compose2unraid/releases
+@CHANGES@
 </CHANGES>
 
 <FILE Name="&flashdir;/bin/docker-compose-&composeVersion;">

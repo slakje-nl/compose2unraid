@@ -336,7 +336,11 @@ dist/                            build output, gitignored
 - A release is cut by hand: `release.yml` runs only from Actions, Run workflow, and only on `main`.
   It runs lint, test and gitleaks again, computes the next integer tag `vN`, builds the `.plg` with
   version `YYYY.MM.DD` (with a `.N` suffix when a release already carries that date), and attaches
-  `compose2unraid.plg` to a GitHub release. Merging to `main` publishes nothing. The install URL
+  `compose2unraid.plg` to a GitHub release. The release notes GitHub generates from the merged PR
+  titles are the release body and, XML-escaped, the `.plg`'s `<CHANGES>` block, so the Plugins
+  tab shows the same text (`PLG_CHANGES` names the notes file for `build-plg.sh`; a build
+  without one points at the releases page). Write PR titles for that reader. Merging to `main`
+  publishes nothing. The install URL
   `releases/latest/download/compose2unraid.plg` always serves the newest one, and the `.plg`'s own
   `pluginURL` points there so Unraid's update check works.
 - Local builds get a version of `YYYY.MM.DD.dev<HHMM>`, which sorts above the day's release and

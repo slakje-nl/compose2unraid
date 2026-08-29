@@ -33,3 +33,24 @@ teardown() {
   [ "$status" -eq 0 ]
   grep -Eq '<!ENTITY version "[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.dev[0-9]{4}">' "$PLG_OUT"
 }
+
+@test "a build without release notes points the changelog at the releases page" {
+  run "$ROOT/tools/build-plg.sh" 2026.01.02
+
+  [ "$status" -eq 0 ]
+  grep -q '^- Release notes live at https://github.com/slakje-nl/compose2unraid/releases$' \
+    "$PLG_OUT"
+}
+
+@test "release notes land in the changelog with the characters XML cannot carry escaped" {
+  printf '## What is new\n* feat(ui): a <b>bold</b> badge & more in https://x/pull/9\n' \
+    > "$OUT_DIR/notes.md"
+
+  PLG_CHANGES="$OUT_DIR/notes.md" run "$ROOT/tools/build-plg.sh" 2026.01.02
+
+  [ "$status" -eq 0 ]
+  grep -q '^###&version;$' "$PLG_OUT"
+  grep -q '^## What is new$' "$PLG_OUT"
+  grep -q '^\* feat(ui): a &lt;b&gt;bold&lt;/b&gt; badge &amp; more in https://x/pull/9$' "$PLG_OUT"
+  ! grep -q 'Release notes live at' "$PLG_OUT"
+}

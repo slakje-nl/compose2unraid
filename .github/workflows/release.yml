@@ -37,7 +37,18 @@ jobs:
             echo "plugin=$today.$taken" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: write the release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/${{ github.repository }}/releases/generate-notes" \
+            -f tag_name="${{ steps.version.outputs.tag }}" \
+            -f target_commitish=main \
+            --jq .body > "$RUNNER_TEMP/notes.md"
+
       - name: build the plugin file
+        env:
+          PLG_CHANGES: ${{ runner.temp }}/notes.md
         run: tools/build-plg.sh "${{ steps.version.outputs.plugin }}"
 
       - name: tag the release
@@ -51,4 +62,4 @@ jobs:
           tag_name: ${{ steps.version.outputs.tag }}
           name: ${{ steps.version.outputs.tag }} (plugin ${{ steps.version.outputs.plugin }})
           files: dist/compose2unraid.plg
-          generate_release_notes: true
+          body_path: ${{ runner.temp }}/notes.md

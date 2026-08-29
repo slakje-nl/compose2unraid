@@ -7,6 +7,8 @@ COMPOSE_SHA256=c57ab918abd5b05ca7e7d0f275875dd1330a695074f309dc9eab1b49efafcd4b
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEMPLATE="$ROOT/plg/compose2unraid.plg.in"
 OUT="${PLG_OUT:-$ROOT/dist/compose2unraid.plg}"
+CHANGES_FILE="${PLG_CHANGES:-}"
+RELEASES_URL=https://github.com/slakje-nl/compose2unraid/releases
 INSTALL_DIR=/usr/local/emhttp/plugins/compose2unraid
 
 version() {
@@ -37,6 +39,15 @@ file_entry() {
   printf ']]></INLINE>\n</FILE>\n\n'
 }
 
+changes() {
+  if [[ -z "$CHANGES_FILE" ]]; then
+    printf -- '- Release notes live at %s\n' "$RELEASES_URL"
+    return 0
+  fi
+
+  sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g' "$CHANGES_FILE"
+}
+
 source_files() {
   (cd "$ROOT/src" && find . -type f | sed 's#^\./##' | LC_ALL=C sort)
 }
@@ -53,6 +64,10 @@ render() {
   while IFS= read -r line; do
     if [[ "$line" == "@FILES@" ]]; then
       file_entries
+      continue
+    fi
+    if [[ "$line" == "@CHANGES@" ]]; then
+      changes
       continue
     fi
 
