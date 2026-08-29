@@ -96,10 +96,13 @@ The approved set:
 These are written in the README and every change must keep them true.
 
 - **A container's image changes only when the user asks**: the update link on a service Unraid
-  flagged, or a pull in a terminal. The boot hook uses `--no-recreate`, apply never pulls, and
-  "update ready" comes from Unraid's own Check for Updates status file, never from a request the
-  plugin made.
-- **Boot never depends on the network.** The `docker_started` hook brings up whatever is on disk,
+  flagged, or a pull in a terminal. The boot hook uses `--no-recreate`, apply and the hook pull
+  only an image the box does not have (Compose's `missing` policy, the same in the dry run, so a
+  new service plans as `Creating` and the dry run resolves that one image against its registry),
+  and "update ready" comes from Unraid's own Check for Updates status file, never from a request
+  the plugin made.
+- **Boot never depends on the network for what the box has.** The `docker_started` hook brings
+  up whatever is on disk,
   detached from the event (`setsid ... &`), so emhttp's Docker start never waits for a stack.
 - **Nothing changes without a click.** Refreshing the page runs `status.sh`, which only reads.
   The one endpoint that changes anything, `run.php`, accepts POST only, runs `apply.sh` with a
@@ -121,7 +124,7 @@ These are written in the README and every change must keep them true.
   `status.sh` prints one JSON document, built with `jq`, including the services each compose
   file defines (`compose config --format json`: name, container name, icon label) so the page
   can list a stack before it runs; `include/stacks.php` turns it into the table.
-  `apply.sh <stack>` brings a stack up according to its drift;
+  `apply.sh <stack>` runs that same `up` without `--dry-run` and lets Compose decide;
   `apply.sh <stack> --pull <service>...` pulls and recreates exactly those services, `--no-deps`
   so a drifted dependency stays as it is, and removes the images they replaced when nothing else
   uses them; `--recreate` forces every container;
@@ -133,7 +136,7 @@ These are written in the README and every change must keep them true.
   Closing either dialog, by its button or Escape, refreshes the table. No background runs, no
   run files, no history.
 - **Drift is what Compose itself would do.** `stack_drift` runs
-  `docker compose up -d --dry-run --no-build --pull never --remove-orphans` and reads the plan:
+  `docker compose up -d --dry-run --no-build --remove-orphans` and reads the plan:
   any container, network or volume it would create, recreate or remove makes the whole stack
   `changed`; nothing is attributed to a service, "Show diff" prints the plan for that. The plan
   lines are `Container <name> Recreate` in the pinned compose and ` DRY-RUN MODE -  Container

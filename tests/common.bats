@@ -106,7 +106,7 @@ teardown() {
 
   [ "$status" -eq 0 ]
   [ "$output" = $'fresh: new\nsame: insync\nedited: changed\ngrown: changed\nshrunk: changed\nnamed: changed\nbroken: broken compose up failed for broken' ]
-  docker_calls | grep -q -- '-p same up -d --dry-run --no-build --pull never --remove-orphans$'
+  docker_calls | grep -q -- '-p same up -d --dry-run --no-build --remove-orphans$'
   ! docker_calls | grep -q -- '-p fresh up'
 }
 

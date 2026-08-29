@@ -19,7 +19,7 @@ teardown() {
   plugin_log | grep -q 'applied alpha'
 }
 
-@test "apply recreates only a changed stack" {
+@test "apply runs compose up as it is and lets Compose decide what to change" {
   make_stack same
   add_running same
   make_stack edited
@@ -27,13 +27,14 @@ teardown() {
 
   run "$SCRIPTS/apply.sh" same
   [ "$status" -eq 0 ]
-  [[ "$output" == *"same is in sync, nothing to do"* ]]
-  ! docker_calls | grep -q -- '-p same up'
+  [[ "$output" == *"Applying same"* ]]
+  [ "$(docker_calls | grep -c -- '-p same up -d --remove-orphans$')" = "1" ]
+  ! docker_calls | grep -q -- '--dry-run'
 
   run "$SCRIPTS/apply.sh" edited
   [ "$status" -eq 0 ]
   [[ "$output" == *"Applying edited"* ]]
-  docker_calls | grep -q -- '-p edited up -d --remove-orphans'
+  docker_calls | grep -q -- '-p edited up -d --remove-orphans$'
 }
 
 @test "apply refuses a stack that is not on disk" {
@@ -63,18 +64,6 @@ teardown() {
   [ "$status" -eq 1 ]
   [[ "$output" == *"compose up failed for alpha"* ]]
   [[ "$output" != *"Done."* ]]
-}
-
-@test "apply refuses a stack compose cannot read and says why" {
-  make_stack alpha
-  add_running alpha
-  export FAKE_DOCKER_FAIL_STACKS=alpha
-
-  run "$SCRIPTS/apply.sh" alpha
-
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"Compose cannot read alpha: compose up failed for alpha"* ]]
-  [ "$(docker_calls | grep -c -- ' up -d')" = "1" ]
 }
 
 @test "update pulls and recreates only the named services, not what they depend on, and removes the images it replaced" {

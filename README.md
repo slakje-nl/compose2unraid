@@ -106,15 +106,18 @@ When Docker starts, the plugin waits for the daemon and runs `docker compose up 
 for every stack on disk, one after the other, in the background: Docker's own start does not wait
 for the stacks, and a stack that takes long to come up holds up nothing but the stacks after it.
 A stack that fails is logged, with Compose's output, to syslog and to
-`/var/log/compose2unraid/compose2unraid.log`, and the next one still starts. Nothing is pulled,
-nothing is recreated, nothing depends on the network. Put `restart: always` in your services so
-the daemon itself restarts them when it restarts.
+`/var/log/compose2unraid/compose2unraid.log`, and the next one still starts. Nothing is recreated,
+and nothing is pulled unless a service's image is not on the box at all, so a box without a
+network still brings up everything it has. Put `restart: always` in your services so the daemon
+itself restarts them when it restarts.
 
 ### Promises
 
 - A container's image changes only when you click **Update and restart** on it or pull it
-  yourself. Nothing pulls in the background, and **Sync stack** never pulls.
-- Boot never depends on the network or on any git host.
+  yourself. Nothing pulls in the background, and neither **Sync stack** nor boot pulls an image
+  the box already has; only an image the box has never seen is pulled, once.
+- Boot never depends on any git host, and on the network only for an image the box does not
+  have yet.
 - Nothing changes without a click, and a click does exactly what its entry says, for that stack
   or that service only.
 - A stack whose files are broken is shown as such; the others are unaffected.
