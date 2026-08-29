@@ -87,7 +87,7 @@ The approved set:
 | | |
 |---|---|
 | Runtime | bash, `jq` and PHP as shipped by Unraid, `docker compose` (static release) |
-| Dev containers | `koalaman/shellcheck`, `php:8.3-cli` (the PHP Unraid 7.2 ships), `bats/bats`, `zricethezav/gitleaks` |
+| Dev containers | `koalaman/shellcheck`, `php:8.3-cli` (what Unraid 7.2 ships), `bats/bats`, `zricethezav/gitleaks` |
 | Toolchain | `just`, Docker |
 | CI | `actions/checkout`, `actions/setup-node`, `jdx/mise-action`, `softprops/action-gh-release`, `@commitlint/cli`, `@commitlint/config-conventional` |
 
@@ -206,7 +206,7 @@ Where things live on the box:
 /boot/config/plugins/compose2unraid/     config and the downloaded compose binary (flash)
 <base path>/stacks/<name>/               one directory per stack, synced by the user
 /var/log/compose2unraid/                 the plugin log (tmpfs)
-/var/cache/compose2unraid/               the drift the page last computed, one JSON per stack (tmpfs)
+/var/cache/compose2unraid/               the last drift check, one JSON per stack (tmpfs)
 /usr/local/emhttp/plugins/compose2unraid/  installed page, PHP and scripts (tmpfs)
 ```
 
@@ -288,15 +288,15 @@ dist/                            build output, gitignored
 - **Split the action from the validation.** Run the script in its own statement, then assert on
   `$status`, `$output` and the files it wrote.
 - **Cover every state the page can show**: new, changed (a service added, removed, or edited),
-  insync, gone, broken, unknown (a tick before the next full run), and apply on a stack without an `.env`; the hook with a failing stack, an
-  empty stacks directory, a slow daemon and
-  a held lock; apply for each drift state, a refused stack, a compose failure; update pulling
-  only the named services, an unknown service, a failed pull, a replaced image still in use.
-- **The page is rendered in the test too.** `just test-render` runs the page and the fragment in
-  the `php:8.3-cli` container against `tests/render/`: a `status.sh` stub in plain `sh` that prints a
-  fixed status, a stub of Unraid's `parse_plugin_cfg`, and a stub update-status file. A fatal
-  fails it, and it asserts every state and link the page can show. `php -l` alone missed a call
-  before its include once; this is what catches that class.
+  insync, gone, broken, unknown (a tick before the next full run), and apply on a stack without an
+  `.env`; the hook with a failing stack, an empty stacks directory, a slow daemon and a held lock;
+  apply for each drift state, a refused stack, a compose failure; update pulling only the named
+  services, an unknown service, a failed pull, a replaced image still in use.
+- **The page is rendered in the test too.** `just test-render` runs the page and the fragment in the
+  `php:8.3-cli` container against `tests/render/`: a `status.sh` stub in plain `sh` that prints a
+  fixed status, a stub of Unraid's `parse_plugin_cfg`, and a stub update-status file. A fatal fails
+  it, and it asserts every state and link the page can show. `php -l` alone missed a call before its
+  include once; this is what catches that class.
 
 ---
 
@@ -317,12 +317,12 @@ dist/                            build output, gitignored
 
 ## Release
 
-- A release is cut by hand: `release.yml` runs only from Actions, Run workflow, and only on
-  `main`. It runs lint, test and gitleaks again, computes the next integer tag `vN`, builds the
-  `.plg` with version `YYYY.MM.DD` (with a `.N` suffix when a release already carries that date),
-  and attaches `compose2unraid.plg` to a GitHub release. Merging to `main` publishes nothing. The install URL
-  `releases/latest/download/compose2unraid.plg` always serves the newest one, and the `.plg`'s
-  own `pluginURL` points there so Unraid's update check works.
+- A release is cut by hand: `release.yml` runs only from Actions, Run workflow, and only on `main`.
+  It runs lint, test and gitleaks again, computes the next integer tag `vN`, builds the `.plg` with
+  version `YYYY.MM.DD` (with a `.N` suffix when a release already carries that date), and attaches
+  `compose2unraid.plg` to a GitHub release. Merging to `main` publishes nothing. The install URL
+  `releases/latest/download/compose2unraid.plg` always serves the newest one, and the `.plg`'s own
+  `pluginURL` points there so Unraid's update check works.
 - Local builds get a version of `YYYY.MM.DD.dev<HHMM>`, which sorts above the day's release and
   forces a reinstall on the box. `plugin install` refuses a file at the installed plugin's own
   path on flash, so `just push` copies to `/tmp` and installs from there.
