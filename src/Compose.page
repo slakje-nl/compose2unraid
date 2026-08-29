@@ -63,6 +63,11 @@ function c2uCheckUpdates() {
     'Checking for updates', 600, 900, true, 'c2uCommandsDone');
 }
 
+function c2uLogs(name) {
+  openBox('/plugins/compose2unraid/include/logs.php?name=' + encodeURIComponent(name)
+    + '&csrf_token=' + csrf_token, 'Log of ' + name, 600, 900, true, 'c2uCommandsDone');
+}
+
 function c2uRun(action, stack, services) {
   var url = '/plugins/compose2unraid/include/run.php?action=' + encodeURIComponent(action)
     + '&stack=' + encodeURIComponent(stack) + '&services=' + encodeURIComponent(services)
@@ -87,9 +92,13 @@ function c2uMenu(icon) {
       opts.push({text: 'Start', icon: 'fa-play', action: run('start', data.service)});
     }
     opts.push({text: 'Restart', icon: 'fa-refresh', action: run('restart', data.service)});
-    opts.push({text: 'Logs', icon: 'fa-navicon', action: function (event) {
+    opts.push({text: 'Logs (new tab)', icon: 'fa-navicon', action: function (event) {
       event.preventDefault();
       openTerminal('docker', data.name, '.log');
+    }});
+    opts.push({text: 'Logs (popup)', icon: 'fa-list-alt', action: function (event) {
+      event.preventDefault();
+      c2uLogs(data.name);
     }});
     if (data.update === '1') {
       opts.push({text: data.state === 'running' ? 'Update and restart' : 'Update and start',

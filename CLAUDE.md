@@ -142,11 +142,15 @@ These are written in the README and every change must keep them true.
   `--start`, `--stop` and `--restart` pass the services, or the whole stack when none is named,
   to that compose verb. All take the boot hook's `flock`. `--diff` prints the dry run's plan and
   takes no lock.
-- **Both dialogs are Unraid's `openBox`.** `run.php` validates, runs `apply.sh` with
-  `proc_open`, and echoes each output line as it arrives, so a pull's progress shows live; its
-  Done button calls `parent.Shadowbox.close()`. `commands.php` renders the terminal commands
-  for a stack with copy buttons, server-side and escaped, in the same dialog. Closing either,
-  by its button or Escape, refreshes the table. No background runs, no run files, no history.
+- **Every dialog is Unraid's `openBox`.** `run.php` validates, runs `apply.sh` through
+  `compose2unraid_stream` (`proc_open` under `setsid`, one line echoed as it arrives, a
+  heartbeat comment while the child is silent, the process group killed when the client goes
+  away), so a pull's progress shows live; its Done button calls `parent.Shadowbox.close()`.
+  `logs.php` streams `docker logs --tail 200 --follow <container>` through the same helper, a
+  read, with the container name validated (`compose2unraid_valid_container_name`) and the
+  page's token checked. `check.php` and `commands.php` share the dialog too. Closing any of
+  them, by its button or Escape, refreshes the table. No background runs, no run files, no
+  history.
 - **Drift is what Compose itself would do.** `stack_drift` runs
   `docker compose up -d --dry-run --no-build --remove-orphans` and reads the plan:
   any container, network or volume it would create, recreate or remove makes the whole stack
@@ -233,6 +237,7 @@ src/
   include/run.php                checks the csrf token, runs apply.sh and streams its output
   include/commands.php           the terminal commands for a stack, in the same dialog
   include/check.php              asks the registries about every image, in the same dialog
+  include/logs.php               follows a container's log, in the same dialog
   scripts/common.sh              config, logging, stacks(), compose(), drift detection
   scripts/status.sh              the JSON the page renders
   scripts/apply.sh               apply a stack, or pull and recreate named services

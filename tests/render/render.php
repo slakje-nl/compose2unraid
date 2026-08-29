@@ -52,7 +52,9 @@ expect($page, "(drift ? '' : '?drift=0')", 'a tick asks the fragment to skip the
 expect($page, "refresh(true);\n})();", 'the first load checks drift');
 expect($page, "context.attach('#' + icon.id, opts)", 'the menu is the Unraid context menu');
 expect($page, "context.settings({right: false, above: 'auto'})", 'the menu opens above the icon when it would not fit below');
-expect($page, "openTerminal('docker', data.name, '.log')", 'logs open in Unraid\'s own log window');
+expect($page, "openTerminal('docker', data.name, '.log')", 'Logs (new tab) opens Unraid\'s own log window');
+expect($page, "{text: 'Logs (popup)', icon: 'fa-list-alt'", 'Logs (popup) sits next to it');
+expect($page, "openBox('/plugins/compose2unraid/include/logs.php?name=' + encodeURIComponent(name)", 'the popup streams logs.php in Unraid\'s dialog');
 expect($page, "if (!response.ok) { throw new Error(", 'a failed fetch keeps the table it has instead of showing the error page');
 
 $fragment = render('/usr/local/emhttp/plugins/compose2unraid/include/stacks.php');
@@ -130,9 +132,10 @@ expect($quick, 'data-drift="unknown"', 'the menu knows the stack was not checked
 expect($quick, '<span class="appname">alpha-app-1</span>', 'a tick has the stacks');
 
 $run = (string) file_get_contents('/usr/local/emhttp/plugins/compose2unraid/include/run.php');
+$common = (string) file_get_contents('/usr/local/emhttp/plugins/compose2unraid/include/common.php');
 $defined = strpos($run, 'function c2uLine(');
-expect($run, "'exec setsid '", 'the run gets its own process group');
-expect($run, "exec('kill -TERM -- -' . \$pid)", 'closing the dialog kills that group');
+expect($common, "'exec setsid '", 'a streamed command gets its own process group');
+expect($common, "exec('kill -TERM -- -' . \$pid)", 'closing the dialog kills that group');
 expect($run, 'json_encode($line, COMPOSE2UNRAID_JSON_IN_HTML)', 'a streamed line can never open or close a tag');
 expect($run, 'compose2unraid_run_arguments($_GET, compose2unraid_base_path(), $token)', 'run.php accepts nothing the validation did not pass');
 expect($run, 'onclick="parent.Shadowbox.close()"', 'the Done button closes Unraid\'s dialog');
@@ -207,6 +210,17 @@ if (compose2unraid_check_summary(1, 1, 0) !== '1 of 1 image has a newer version.
 if (compose2unraid_images_to_check(['stacks' => [['name' => 'a', 'drift' => 'gone']], 'containers' => [['stack' => 'a', 'image' => 'x']]]) !== []) {
     $failures[] = 'a gone stack contributes no image';
 }
+
+$logs = stream('/usr/local/emhttp/plugins/compose2unraid/include/logs.php', ['csrf_token' => 'token', 'name' => 'alpha-app-1']);
+expect($logs, 'c2uLine("first line of alpha-app-1\n")', 'the popup streams the container\'s log lines');
+expect($logs, 'c2uLine("second line\n")', 'every line arrives');
+expect($logs, 'The log ended', 'the popup says when the log ends');
+expect($logs, 'onclick="parent.Shadowbox.close()"', 'the popup closes Unraid\'s dialog');
+$badLogs = stream('/usr/local/emhttp/plugins/compose2unraid/include/logs.php', ['csrf_token' => 'token', 'name' => 'a; rm -rf /']);
+expect($badLogs, 'That is not a container name.', 'a bad container name is refused');
+refuse($badLogs, '/c2uLine/', 'a refused log streams nothing');
+$noTokenLogs = stream('/usr/local/emhttp/plugins/compose2unraid/include/logs.php', ['name' => 'alpha-app-1']);
+expect($noTokenLogs, 'does not carry the page', 'logs without the page\'s token are refused');
 
 $_GET = ['stack' => '../etc'];
 $refused = render('/usr/local/emhttp/plugins/compose2unraid/include/commands.php');

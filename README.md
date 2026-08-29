@@ -12,9 +12,9 @@ deploy from a terminal. It does two things:
 
 1. **Brings your stacks up when Docker starts**, including after Settings, Docker, off and on,
    without touching the network. This is the part that has to be a plugin.
-2. **Shows them on a Compose tab next to Docker**: every stack with its containers, health, version, CPU,
-   memory and uptime, whether what runs still matches the files on disk, and whether Unraid found
-   a newer image. Each row's icon opens the same kind of menu as on the Docker tab, and every
+2. **Shows them on a Compose tab next to Docker**: every stack with its containers, health, version,
+   CPU, memory and uptime, whether what runs still matches the files on disk, and whether Unraid
+   found a newer image. Each row's icon opens the same kind of menu as on the Docker tab, and every
    entry in it is one `docker compose` command whose output streams into a dialog.
 
 Nothing else on the page changes a container. Removing a stack and syncing files are terminal
@@ -90,7 +90,9 @@ so the **update ready** badge and the Docker tab agree.
 Under **Container**, while the stack runs:
 
 - **Stop** or **Start**, and **Restart**: that one service.
-- **Logs**: Unraid's own log window, following the container's log.
+- **Logs (new tab)**: Unraid's own log window, following the container's log.
+- **Logs (popup)**: the last 200 lines and everything after, in the same dialog as the actions,
+  until you close it.
 - **Update and restart** (or **and start**), only when Unraid flagged the image: pulls that
   service's image, recreates the container and removes the image it replaced if nothing else
   uses it. Nothing else in the stack is touched, not even a service it depends on.

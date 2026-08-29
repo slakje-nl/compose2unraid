@@ -137,6 +137,56 @@ function compose2unraid_theme(): string
     return preg_match('/^[a-z]+$/', $display['theme'] ?? '') === 1 ? $display['theme'] : 'white';
 }
 
+function compose2unraid_valid_container_name(string $name): bool
+{
+    return preg_match('/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/', $name) === 1;
+}
+
+function compose2unraid_start_streaming(): void
+{
+    ob_implicit_flush(true);
+    while (ob_get_level() > 0) {
+        ob_end_flush();
+    }
+    echo str_repeat(' ', 4096);
+    flush();
+    ignore_user_abort(true);
+}
+
+function compose2unraid_stream(string $command, callable $onLine): array
+{
+    $pipes = [];
+    $process = proc_open('exec setsid ' . $command . ' 2>&1', [1 => ['pipe', 'w']], $pipes);
+    if (!is_resource($process)) {
+        return [1, false];
+    }
+    $pid = (int) proc_get_status($process)['pid'];
+    $stopped = false;
+    while (true) {
+        $readable = [$pipes[1]];
+        $write = null;
+        $except = null;
+        if (stream_select($readable, $write, $except, 1) > 0) {
+            $line = fgets($pipes[1]);
+            if ($line === false) {
+                break;
+            }
+            $onLine($line);
+        } else {
+            echo "<!-- still running -->\n";
+        }
+        flush();
+        if (connection_aborted()) {
+            exec('kill -TERM -- -' . $pid);
+            $stopped = true;
+            break;
+        }
+    }
+    fclose($pipes[1]);
+
+    return [proc_close($process), $stopped];
+}
+
 function compose2unraid_run_script(string $script, string ...$arguments): array
 {
     $command = escapeshellarg(COMPOSE2UNRAID_SCRIPTS_DIR . '/' . $script);

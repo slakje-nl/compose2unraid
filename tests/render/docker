@@ -1,0 +1,8 @@
+#!/bin/sh
+if [ "$1" = logs ]; then
+  for name; do :; done
+  printf 'first line of %s\nsecond line\n' "$name"
+  exit 0
+fi
+printf 'stub docker: unexpected %s\n' "$*" >&2
+exit 2

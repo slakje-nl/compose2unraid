@@ -55,12 +55,7 @@ function c2uLine(line) {
 <body>
 <pre id="output"></pre>
 <?php
-ob_implicit_flush(true);
-while (ob_get_level() > 0) {
-    ob_end_flush();
-}
-echo str_repeat(' ', 4096);
-flush();
+compose2unraid_start_streaming();
 
 function compose2unraid_say(string $text): void
 {
