@@ -50,7 +50,6 @@ expect($page, 'value="Check for updates"', 'a check for updates button sits belo
 expect($page, "setTimeout(function () { refresh(false); }, 5000)", 'container state ticks every five seconds without drift');
 expect($page, "(drift ? '' : '?drift=0')", 'a tick asks the fragment to skip the dry run');
 expect($page, "refresh(true);\n})();", 'the first load checks drift');
-expect($page, "'/plugins/dynamix.docker.manager/include/DockerUpdate.php'", 'it calls what the Docker tab calls');
 expect($page, "context.attach('#' + icon.id, opts)", 'the menu is the Unraid context menu');
 expect($page, "context.settings({right: false, above: 'auto'})", 'the menu opens above the icon when it would not fit below');
 expect($page, "openTerminal('docker', data.name, '.log')", 'logs open in Unraid\'s own log window');
@@ -183,6 +182,32 @@ expect($commands, '<code>/tmp/compose2unraid/stacks/alpha/.env</code>', 'the com
 expect($commands, '<code>docker compose -p alpha down --remove-orphans --volumes</code>', 'the commands popup writes out down');
 expect($commands, 'onclick="c2uCopy(this, &quot;docker compose up -d --remove-orphans&quot;)"', 'every command has a copy button');
 expect($commands, 'onclick="parent.Shadowbox.close()"', 'the popup closes Unraid\'s dialog');
+function stream(string $file, array $query): string
+{
+    $script = '$_GET = ' . var_export($query, true) . '; include ' . var_export($file, true) . ';';
+
+    return (string) shell_exec('php -r ' . escapeshellarg($script) . ' 2>&1');
+}
+
+$check = stream('/usr/local/emhttp/plugins/compose2unraid/include/check.php', ['csrf_token' => 'token']);
+$refusedCheck = stream('/usr/local/emhttp/plugins/compose2unraid/include/check.php', ['csrf_token' => 'other']);
+expect($refusedCheck, 'does not carry the page', 'a check without the page\'s token is refused');
+refuse($refusedCheck, '/c2uLine/', 'a refused check checks nothing');
+expect($check, 'c2uLine("example\/alpha:1.2: ")</script>', 'the check names each image before asking the registry');
+expect($check, 'c2uLine("example\/alpha:1.2: ")</script>' . "\n" . '<script>c2uLine("update ready\n")', 'an image Unraid found newer says update ready');
+expect($check, 'c2uLine("example\/beta: ")</script>' . "\n" . '<script>c2uLine("up to date\n")', 'an image at its remote digest is up to date');
+expect($check, 'c2uLine("example\/torn: ")</script>' . "\n" . '<script>c2uLine("unknown, no route to host\n")', 'a registry failure is shown, not fatal');
+expect($check, 'c2uLine("example\/delta:2: ")</script>' . "\n" . '<script>c2uLine("unknown, the registry did not answer\n")', 'an image with no verdict is unknown');
+refuse($check, '#example\\\\/gone#', 'a stack without files is not checked');
+expect($check, '<p class="done orange-text">1 of 5 images has a newer version. 3 could not be checked.</p>', 'the summary counts newer and unchecked images');
+expect($check, 'onclick="parent.Shadowbox.close()"', 'the check closes Unraid\'s dialog');
+if (compose2unraid_check_summary(1, 1, 0) !== '1 of 1 image has a newer version.') {
+    $failures[] = 'the summary reads well for one image';
+}
+if (compose2unraid_images_to_check(['stacks' => [['name' => 'a', 'drift' => 'gone']], 'containers' => [['stack' => 'a', 'image' => 'x']]]) !== []) {
+    $failures[] = 'a gone stack contributes no image';
+}
+
 $_GET = ['stack' => '../etc'];
 $refused = render('/usr/local/emhttp/plugins/compose2unraid/include/commands.php');
 $_GET = [];

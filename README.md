@@ -70,8 +70,8 @@ has none) and prints Compose's message in a red line below its last row. A file 
 `env_file` that is not there says **missing .env**, and that line names the path.
 
 Under each container: **stopped**, or health from its healthcheck (**n/a** when the image defines
-none); the image tag, or a short digest for pinned images, with **update ready** beneath it when
-Unraid's own **Check for Updates** found a newer one; CPU as a share of the whole box, memory and
+none); the image tag, or a short digest for pinned images, with **update ready** beneath it when the
+last **Check for updates** found a newer one; CPU as a share of the whole box, memory and
 uptime. The badge clears as soon as the image on the box carries the digest Unraid saw, without
 waiting for the next check.
 
@@ -79,7 +79,11 @@ Container state, health, CPU, memory and uptime refresh in place every five seco
 tab is visible. Whether the files still match what runs is Compose's own dry run, one compose
 process per stack, so it is checked when the page opens, after every action, and when you click
 **Refresh stacks** below the tables; a stack synced to disk since then says **not checked**
-until you do. **Check for updates** next to it runs the same check as the Docker tab's button.
+until you do. **Check for updates** next to it opens a window that asks the registry about
+every image your stacks use, one by one, through Unraid's own update code, and ends with how
+many have a newer version. Unraid's own **Check for Updates** on the Docker tab skips
+containers it did not create, so it never covers these; this one writes the same status file,
+so the **update ready** badge and the Docker tab agree.
 
 ### The icon menu
 

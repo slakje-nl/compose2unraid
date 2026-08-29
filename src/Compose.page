@@ -33,7 +33,7 @@ table.tablesorter.c2u-stack tbody tr td {
 <div id="c2u-content"><p class="grey-text">Reading the stacks...</p></div>
 <div class="c2u-actions">
   <input type="button" value="Refresh stacks" onclick="c2uRefreshStacks(this)">
-  <input type="button" value="Check for updates" onclick="c2uCheckUpdates(this)">
+  <input type="button" value="Check for updates" onclick="c2uCheckUpdates()">
 </div>
 
 <script>
@@ -58,14 +58,9 @@ function c2uRefreshStacks(button) {
   });
 }
 
-function c2uCheckUpdates(button) {
-  button.disabled = true;
-  button.value = 'Checking...';
-  $.post('/plugins/dynamix.docker.manager/include/DockerUpdate.php', {}).always(function () {
-    button.disabled = false;
-    button.value = 'Check for updates';
-    c2uRefresh(false);
-  });
+function c2uCheckUpdates() {
+  openBox('/plugins/compose2unraid/include/check.php?csrf_token=' + csrf_token,
+    'Checking for updates', 600, 900, true, 'c2uCommandsDone');
 }
 
 function c2uRun(action, stack, services) {

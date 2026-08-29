@@ -8,13 +8,6 @@ header('Content-Type: text/html; charset=utf-8');
 header('X-Accel-Buffering: no');
 header('Cache-Control: no-store');
 
-function compose2unraid_refuse(string $message): never
-{
-    http_response_code(400);
-    echo '<!DOCTYPE html><meta charset="utf-8"><p>' . compose2unraid_h($message) . '</p>';
-    exit;
-}
-
 $token = compose2unraid_csrf_token();
 $arguments = compose2unraid_run_arguments($_GET, compose2unraid_base_path(), $token);
 if (is_string($arguments)) {

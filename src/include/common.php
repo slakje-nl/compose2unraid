@@ -9,6 +9,10 @@ const COMPOSE2UNRAID_ICON_DIR = '/var/lib/docker/unraid/images';
 const COMPOSE2UNRAID_ICON_URL = '/state/plugins/dynamix.docker.manager/images';
 const COMPOSE2UNRAID_QUESTION_ICON = '/plugins/dynamix.docker.manager/images/question.png';
 const COMPOSE2UNRAID_VAR_INI = '/var/local/emhttp/var.ini';
+const COMPOSE2UNRAID_TOKEN_REFUSAL =
+    'This request does not carry the page\'s token. Reload the page and try again.';
+const COMPOSE2UNRAID_DOCKER_CLIENT =
+    '/usr/local/emhttp/plugins/dynamix.docker.manager/include/DockerClient.php';
 const COMPOSE2UNRAID_JSON_IN_HTML = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 const COMPOSE2UNRAID_VERBS = [
     'apply' => 'Syncing', 'update' => 'Updating', 'start' => 'Starting', 'stop' => 'Stopping',
@@ -39,6 +43,48 @@ function compose2unraid_base_path(): string
     return rtrim(compose2unraid_config()['BASE_PATH'], '/');
 }
 
+function compose2unraid_refuse(string $message): never
+{
+    http_response_code(400);
+    echo '<!DOCTYPE html><meta charset="utf-8"><p>' . compose2unraid_h($message) . '</p>';
+    exit;
+}
+
+function compose2unraid_token_matches(array $request, string $token): bool
+{
+    return $token !== '' && hash_equals($token, (string) ($request['csrf_token'] ?? ''));
+}
+
+function compose2unraid_images_to_check(array $status): array
+{
+    $onDisk = [];
+    foreach ($status['stacks'] as $entry) {
+        if ($entry['drift'] !== 'gone') {
+            $onDisk[$entry['name']] = true;
+        }
+    }
+    $images = [];
+    foreach ($status['containers'] as $container) {
+        if (isset($onDisk[$container['stack']])) {
+            $images[$container['image']] = true;
+        }
+    }
+    ksort($images);
+
+    return array_keys($images);
+}
+
+function compose2unraid_check_summary(int $total, int $newer, int $unknown): string
+{
+    $summary = $newer . ' of ' . $total . ' image' . ($total === 1 ? '' : 's')
+        . ($newer === 1 ? ' has' : ' have') . ' a newer version.';
+    if ($unknown > 0) {
+        $summary .= ' ' . $unknown . ' could not be checked.';
+    }
+
+    return $summary;
+}
+
 function compose2unraid_csrf_token(): string
 {
     $var = is_file(COMPOSE2UNRAID_VAR_INI) ? parse_ini_file(COMPOSE2UNRAID_VAR_INI) : [];
@@ -48,9 +94,8 @@ function compose2unraid_csrf_token(): string
 
 function compose2unraid_run_arguments(array $request, string $basePath, string $token): array|string
 {
-    $given = (string) ($request['csrf_token'] ?? '');
-    if ($token === '' || !hash_equals($token, $given)) {
-        return 'This request does not carry the page\'s token. Reload the page and try again.';
+    if (!compose2unraid_token_matches($request, $token)) {
+        return COMPOSE2UNRAID_TOKEN_REFUSAL;
     }
     $action = (string) ($request['action'] ?? '');
     if (!isset(COMPOSE2UNRAID_VERBS[$action])) {
