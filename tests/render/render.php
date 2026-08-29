@@ -50,10 +50,11 @@ expect($page, 'value="Check for updates"', 'a check for updates button sits belo
 expect($page, "setTimeout(function () { refresh(false); }, 5000)", 'container state ticks every five seconds without drift');
 expect($page, "(drift ? '' : '?drift=0')", 'a tick asks the fragment to skip the dry run');
 expect($page, "refresh(true);\n})();", 'the first load checks drift');
-expect($page, "'/plugins/dynamix.docker.manager/include/DockerUpdate.php'", 'it calls what the Docker tab calls');
 expect($page, "context.attach('#' + icon.id, opts)", 'the menu is the Unraid context menu');
 expect($page, "context.settings({right: false, above: 'auto'})", 'the menu opens above the icon when it would not fit below');
-expect($page, "openTerminal('docker', data.name, '.log')", 'logs open in Unraid\'s own log window');
+expect($page, "openTerminal('docker', data.name, '.log')", 'Logs (new tab) opens Unraid\'s own log window');
+expect($page, "{text: 'Logs (popup)', icon: 'fa-list-alt'", 'Logs (popup) sits next to it');
+expect($page, "openBox('/plugins/compose2unraid/include/logs.php?name=' + encodeURIComponent(name)", 'the popup streams logs.php in Unraid\'s dialog');
 expect($page, "if (!response.ok) { throw new Error(", 'a failed fetch keeps the table it has instead of showing the error page');
 
 $fragment = render('/usr/local/emhttp/plugins/compose2unraid/include/stacks.php');
@@ -131,9 +132,10 @@ expect($quick, 'data-drift="unknown"', 'the menu knows the stack was not checked
 expect($quick, '<span class="appname">alpha-app-1</span>', 'a tick has the stacks');
 
 $run = (string) file_get_contents('/usr/local/emhttp/plugins/compose2unraid/include/run.php');
+$common = (string) file_get_contents('/usr/local/emhttp/plugins/compose2unraid/include/common.php');
 $defined = strpos($run, 'function c2uLine(');
-expect($run, "'exec setsid '", 'the run gets its own process group');
-expect($run, "exec('kill -TERM -- -' . \$pid)", 'closing the dialog kills that group');
+expect($common, "'exec setsid '", 'a streamed command gets its own process group');
+expect($common, "exec('kill -TERM -- -' . \$pid)", 'closing the dialog kills that group');
 expect($run, 'json_encode($line, COMPOSE2UNRAID_JSON_IN_HTML)', 'a streamed line can never open or close a tag');
 expect($run, 'compose2unraid_run_arguments($_GET, compose2unraid_base_path(), $token)', 'run.php accepts nothing the validation did not pass');
 expect($run, 'onclick="parent.Shadowbox.close()"', 'the Done button closes Unraid\'s dialog');
@@ -183,6 +185,45 @@ expect($commands, '<code>/tmp/compose2unraid/stacks/alpha/.env</code>', 'the com
 expect($commands, '<code>docker compose -p alpha down --remove-orphans --volumes</code>', 'the commands popup writes out down');
 expect($commands, 'onclick="c2uCopy(this, &quot;docker compose up -d --remove-orphans&quot;)"', 'every command has a copy button');
 expect($commands, 'onclick="parent.Shadowbox.close()"', 'the popup closes Unraid\'s dialog');
+function stream(string $file, array $query): string
+{
+    $script = '$_GET = ' . var_export($query, true) . '; include ' . var_export($file, true) . ';';
+
+    return (string) shell_exec('php -r ' . escapeshellarg($script) . ' 2>&1');
+}
+
+$check = stream('/usr/local/emhttp/plugins/compose2unraid/include/check.php', ['csrf_token' => 'token']);
+$refusedCheck = stream('/usr/local/emhttp/plugins/compose2unraid/include/check.php', ['csrf_token' => 'other']);
+expect($refusedCheck, 'does not carry the page', 'a check without the page\'s token is refused');
+refuse($refusedCheck, '/c2uLine/', 'a refused check checks nothing');
+expect($check, 'c2uLine("example\/alpha:1.2: ")</script>', 'the check names each image before asking the registry');
+expect($check, 'c2uLine("example\/alpha:1.2: ")</script>' . "\n" . '<script>c2uLine("update ready\n")', 'an image Unraid found newer says update ready');
+expect($check, 'c2uLine("example\/beta: ")</script>' . "\n" . '<script>c2uLine("up to date\n")', 'an image at its remote digest is up to date');
+expect($check, 'c2uLine("example\/torn: ")</script>' . "\n" . '<script>c2uLine("unknown, no route to host\n")', 'a registry failure is shown, not fatal');
+expect($check, 'c2uLine("example\/delta:2: ")</script>' . "\n" . '<script>c2uLine("unknown, the registry did not answer\n")', 'an image with no verdict is unknown');
+refuse($check, '#example\\\\/gone#', 'a stack without files is not checked');
+expect($check, '<p class="done orange-text">1 of 5 images has a newer version. 3 could not be checked.</p>', 'the summary counts newer and unchecked images');
+expect($check, 'onclick="parent.Shadowbox.close()"', 'the check closes Unraid\'s dialog');
+expect($check, '</div>' . "\n" . '<script>parent.c2uRefresh(false)</script>', 'the table behind refreshes as soon as the check is done');
+if (compose2unraid_check_summary(1, 1, 0) !== '1 of 1 image has a newer version.') {
+    $failures[] = 'the summary reads well for one image';
+}
+if (compose2unraid_images_to_check(['stacks' => [['name' => 'a', 'drift' => 'gone']], 'containers' => [['stack' => 'a', 'image' => 'x']]]) !== []) {
+    $failures[] = 'a gone stack contributes no image';
+}
+
+$logs = stream('/usr/local/emhttp/plugins/compose2unraid/include/logs.php', ['csrf_token' => 'token', 'name' => 'alpha-app-1']);
+expect($logs, 'c2uLine("first line of alpha-app-1\n")', 'the popup streams the container\'s log lines');
+expect($logs, 'c2uLine("second line\n")', 'every line arrives');
+expect($logs, 'The log ended', 'the popup says when the log ends');
+expect($logs, '<div class="actions"><input type="button" value="Close" onclick="parent.Shadowbox.close()"></div>' . "\n" . '<pre id="output">', 'the popup has its Close button before the first line, since a followed log never ends');
+expect($logs, '.actions { order: 3;', 'the Close button sits at the bottom');
+$badLogs = stream('/usr/local/emhttp/plugins/compose2unraid/include/logs.php', ['csrf_token' => 'token', 'name' => 'a; rm -rf /']);
+expect($badLogs, 'That is not a container name.', 'a bad container name is refused');
+refuse($badLogs, '/c2uLine/', 'a refused log streams nothing');
+$noTokenLogs = stream('/usr/local/emhttp/plugins/compose2unraid/include/logs.php', ['name' => 'alpha-app-1']);
+expect($noTokenLogs, 'does not carry the page', 'logs without the page\'s token are refused');
+
 $_GET = ['stack' => '../etc'];
 $refused = render('/usr/local/emhttp/plugins/compose2unraid/include/commands.php');
 $_GET = [];

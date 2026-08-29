@@ -24,6 +24,9 @@ test-render:
       -v "$PWD/tests/render/status.sh:/usr/local/emhttp/plugins/compose2unraid/scripts/status.sh:ro" \
       -v "$PWD/tests/render/Wrappers.php:/usr/local/emhttp/plugins/dynamix/include/Wrappers.php:ro" \
       -v "$PWD/tests/render/update-status.json:/var/lib/docker/unraid-update-status.json:ro" \
+      -v "$PWD/tests/render/DockerClient.php:/usr/local/emhttp/plugins/dynamix.docker.manager/include/DockerClient.php:ro" \
+      -v "$PWD/tests/render/var.ini:/var/local/emhttp/var.ini:ro" \
+      -v "$PWD/tests/render/docker:/usr/local/bin/docker:ro" \
       -v "$PWD/tests/render/render.php:/render.php:ro" \
       php:8.3-cli-alpine php /render.php
 

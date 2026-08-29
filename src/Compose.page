@@ -33,7 +33,7 @@ table.tablesorter.c2u-stack tbody tr td {
 <div id="c2u-content"><p class="grey-text">Reading the stacks...</p></div>
 <div class="c2u-actions">
   <input type="button" value="Refresh stacks" onclick="c2uRefreshStacks(this)">
-  <input type="button" value="Check for updates" onclick="c2uCheckUpdates(this)">
+  <input type="button" value="Check for updates" onclick="c2uCheckUpdates()">
 </div>
 
 <script>
@@ -58,14 +58,14 @@ function c2uRefreshStacks(button) {
   });
 }
 
-function c2uCheckUpdates(button) {
-  button.disabled = true;
-  button.value = 'Checking...';
-  $.post('/plugins/dynamix.docker.manager/include/DockerUpdate.php', {}).always(function () {
-    button.disabled = false;
-    button.value = 'Check for updates';
-    c2uRefresh(false);
-  });
+function c2uCheckUpdates() {
+  openBox('/plugins/compose2unraid/include/check.php?csrf_token=' + csrf_token,
+    'Checking for updates', 600, 900, true, 'c2uCommandsDone');
+}
+
+function c2uLogs(name) {
+  openBox('/plugins/compose2unraid/include/logs.php?name=' + encodeURIComponent(name)
+    + '&csrf_token=' + csrf_token, 'Log of ' + name, 600, 900, true, 'c2uCommandsDone');
 }
 
 function c2uRun(action, stack, services) {
@@ -92,9 +92,13 @@ function c2uMenu(icon) {
       opts.push({text: 'Start', icon: 'fa-play', action: run('start', data.service)});
     }
     opts.push({text: 'Restart', icon: 'fa-refresh', action: run('restart', data.service)});
-    opts.push({text: 'Logs', icon: 'fa-navicon', action: function (event) {
+    opts.push({text: 'Logs (new tab)', icon: 'fa-navicon', action: function (event) {
       event.preventDefault();
       openTerminal('docker', data.name, '.log');
+    }});
+    opts.push({text: 'Logs (popup)', icon: 'fa-list-alt', action: function (event) {
+      event.preventDefault();
+      c2uLogs(data.name);
     }});
     if (data.update === '1') {
       opts.push({text: data.state === 'running' ? 'Update and restart' : 'Update and start',

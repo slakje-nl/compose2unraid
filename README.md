@@ -12,9 +12,9 @@ deploy from a terminal. It does two things:
 
 1. **Brings your stacks up when Docker starts**, including after Settings, Docker, off and on,
    without touching the network. This is the part that has to be a plugin.
-2. **Shows them on a Compose tab next to Docker**: every stack with its containers, health, version, CPU,
-   memory and uptime, whether what runs still matches the files on disk, and whether Unraid found
-   a newer image. Each row's icon opens the same kind of menu as on the Docker tab, and every
+2. **Shows them on a Compose tab next to Docker**: every stack with its containers, health, version,
+   CPU, memory and uptime, whether what runs still matches the files on disk, and whether Unraid
+   found a newer image. Each row's icon opens the same kind of menu as on the Docker tab, and every
    entry in it is one `docker compose` command whose output streams into a dialog.
 
 Nothing else on the page changes a container. Removing a stack and syncing files are terminal
@@ -70,8 +70,8 @@ has none) and prints Compose's message in a red line below its last row. A file 
 `env_file` that is not there says **missing .env**, and that line names the path.
 
 Under each container: **stopped**, or health from its healthcheck (**n/a** when the image defines
-none); the image tag, or a short digest for pinned images, with **update ready** beneath it when
-Unraid's own **Check for Updates** found a newer one; CPU as a share of the whole box, memory and
+none); the image tag, or a short digest for pinned images, with **update ready** beneath it when the
+last **Check for updates** found a newer one; CPU as a share of the whole box, memory and
 uptime. The badge clears as soon as the image on the box carries the digest Unraid saw, without
 waiting for the next check.
 
@@ -79,14 +79,20 @@ Container state, health, CPU, memory and uptime refresh in place every five seco
 tab is visible. Whether the files still match what runs is Compose's own dry run, one compose
 process per stack, so it is checked when the page opens, after every action, and when you click
 **Refresh stacks** below the tables; a stack synced to disk since then says **not checked**
-until you do. **Check for updates** next to it runs the same check as the Docker tab's button.
+until you do. **Check for updates** next to it opens a window that asks the registry about
+every image your stacks use, one by one, through Unraid's own update code, and ends with how
+many have a newer version. Unraid's own **Check for Updates** on the Docker tab skips
+containers it did not create, so it never covers these; this one writes the same status file,
+so the **update ready** badge and the Docker tab agree.
 
 ### The icon menu
 
 Under **Container**, while the stack runs:
 
 - **Stop** or **Start**, and **Restart**: that one service.
-- **Logs**: Unraid's own log window, following the container's log.
+- **Logs (new tab)**: Unraid's own log window, following the container's log.
+- **Logs (popup)**: the last 200 lines and everything after, in the same dialog as the actions,
+  until you close it.
 - **Update and restart** (or **and start**), only when Unraid flagged the image: pulls that
   service's image, recreates the container and removes the image it replaced if nothing else
   uses it. Nothing else in the stack is touched, not even a service it depends on.

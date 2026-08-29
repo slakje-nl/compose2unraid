@@ -101,8 +101,9 @@ These are written in the README and every change must keep them true.
   flagged, or a pull in a terminal. The boot hook uses `--no-recreate`, apply and the hook pull
   only an image the box does not have (Compose's `missing` policy, the same in the dry run, so a
   new service plans as `Creating` and the dry run resolves that one image against its registry),
-  and "update ready" comes from Unraid's own Check for Updates status file, never from a request
-  the plugin made.
+  and "update ready" comes from Unraid's own update status file, written by Unraid's own
+  `DockerUpdate` code; the plugin asks a registry only when the user clicks Check for updates,
+  never at boot or on a refresh.
 - **Boot never depends on the network for what the box has.** The `docker_started` hook brings
   up whatever is on disk,
   detached from the event (`setsid ... &`), so emhttp's Docker start never waits for a stack.
@@ -141,11 +142,15 @@ These are written in the README and every change must keep them true.
   `--start`, `--stop` and `--restart` pass the services, or the whole stack when none is named,
   to that compose verb. All take the boot hook's `flock`. `--diff` prints the dry run's plan and
   takes no lock.
-- **Both dialogs are Unraid's `openBox`.** `run.php` validates, runs `apply.sh` with
-  `proc_open`, and echoes each output line as it arrives, so a pull's progress shows live; its
-  Done button calls `parent.Shadowbox.close()`. `commands.php` renders the terminal commands
-  for a stack with copy buttons, server-side and escaped, in the same dialog. Closing either,
-  by its button or Escape, refreshes the table. No background runs, no run files, no history.
+- **Every dialog is Unraid's `openBox`.** `run.php` validates, runs `apply.sh` through
+  `compose2unraid_stream` (`proc_open` under `setsid`, one line echoed as it arrives, a
+  heartbeat comment while the child is silent, the process group killed when the client goes
+  away), so a pull's progress shows live; its Done button calls `parent.Shadowbox.close()`.
+  `logs.php` streams `docker logs --tail 200 --follow <container>` through the same helper, a
+  read, with the container name validated (`compose2unraid_valid_container_name`) and the
+  page's token checked. `check.php` and `commands.php` share the dialog too. Closing any of
+  them, by its button or Escape, refreshes the table. No background runs, no run files, no
+  history.
 - **Drift is what Compose itself would do.** `stack_drift` runs
   `docker compose up -d --dry-run --no-build --remove-orphans` and reads the plan:
   any container, network or volume it would create, recreate or remove makes the whole stack
@@ -168,15 +173,20 @@ These are written in the README and every change must keep them true.
   would otherwise leave a compose process behind on every refresh.
 - **Secrets are `stacks/<name>/.env`**, optional, placed by the user, ignored by their sync. The
   commands popup shows the path it is expected at; nothing checks that it exists.
-- **Image updates come from Unraid.** `/var/lib/docker/unraid-update-status.json`, written by the
-  Docker tab's Check for Updates, covers every container on the box, template or not. The page's
-  Check for updates button posts to the same `DockerUpdate.php` the Docker tab posts to. The page
-  reads it and keys it the way Unraid's `parseImageTag` does for the common shapes
-  (`docker.io/` stripped, `library/` for official images, `:latest` when there is no tag); a
-  registry with a port or a digest reference may key differently on Unraid's side, and then
-  simply shows no badge. A container whose image
-  carries the `remote` digest from that file is up to date whatever the file's `status` says,
-  which is how the badge clears right after an update.
+- **Image updates go through Unraid's code, on a click.** Unraid 7.2's own Check for Updates
+  (`DockerClient.php`, `getAllInfo`) skips every container whose `Manager` is not `dockerman`,
+  so it never looks at a compose container. The page's Check for updates button opens
+  `include/check.php` in `openBox`; it lists the images of the containers of every stack on
+  disk (`compose2unraid_images_to_check`, `gone` stacks excluded), calls Unraid's
+  `DockerUpdate::reloadUpdateStatus($image)` for each, streams a line per image and a summary
+  (`compose2unraid_check_summary`), and stops when the dialog closes. That writes
+  `/var/lib/docker/unraid-update-status.json`, the same file the Docker tab reads, keyed the way
+  Unraid's `parseImageTag` keys it for the common shapes (`docker.io/` stripped, `library/` for
+  official images, `:latest` when there is no tag); a registry with a port or a digest reference
+  may key differently on Unraid's side, and then simply shows no badge. The page reads that
+  file; a container whose image carries the `remote` digest from it is up to date whatever the
+  file's `status` says, which is how the badge clears right after an update. The render test
+  runs `check.php` in a PHP subprocess against a stub `DockerClient.php` and a stub `var.ini`.
 - **Config is an Unraid `.cfg`** with one key, `BASE_PATH`, at
   `/boot/config/plugins/compose2unraid/compose2unraid.cfg`, read with `parse_plugin_cfg` in PHP and
   by `configured_base_path` in bash, which accepts the same shapes (double-quoted,
@@ -226,6 +236,8 @@ src/
   include/stacks.php             the table, included by the page and fetched for refreshes
   include/run.php                checks the csrf token, runs apply.sh and streams its output
   include/commands.php           the terminal commands for a stack, in the same dialog
+  include/check.php              asks the registries about every image, in the same dialog
+  include/logs.php               follows a container's log, in the same dialog
   scripts/common.sh              config, logging, stacks(), compose(), drift detection
   scripts/status.sh              the JSON the page renders
   scripts/apply.sh               apply a stack, or pull and recreate named services
