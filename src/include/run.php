@@ -121,7 +121,8 @@ if (is_resource($process)) {
             if ($line === false) {
                 break;
             }
-            echo '<script>c2uLine(' . json_encode($line) . ')</script>' . "\n";
+            echo '<script>c2uLine(' . json_encode($line, JSON_HEX_TAG | JSON_HEX_AMP) . ')</script>'
+                . "\n";
         } else {
             echo "<!-- still running -->\n";
         }

@@ -128,6 +128,7 @@ $run = (string) file_get_contents('/usr/local/emhttp/plugins/compose2unraid/incl
 $defined = strpos($run, 'function c2uLine(');
 expect($run, "'exec setsid '", 'the run gets its own process group');
 expect($run, "exec('kill -TERM -- -' . \$pid)", 'closing the dialog kills that group');
+expect($run, 'json_encode($line, JSON_HEX_TAG | JSON_HEX_AMP)', 'a streamed line can never open or close a tag');
 $used = strpos($run, '<pre id="output">');
 if ($defined === false || $used === false || $defined > $used) {
     $failures[] = 'run.php must define c2uLine before the streamed lines call it';
