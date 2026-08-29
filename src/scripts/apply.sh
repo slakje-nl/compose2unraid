@@ -23,13 +23,16 @@ service_image_ids() {
 }
 
 tidy_images() {
-  local id
+  local id reason
   for id in "$@"; do
     if [[ -n "$(docker ps -aq --filter "ancestor=$id")" ]]; then
+      printf 'Kept the old image %s, another container uses it\n' "${id#sha256:}"
       continue
     fi
-    if docker image rm "$id" > /dev/null 2>&1; then
+    if reason="$( { docker image rm "$id" > /dev/null; } 2>&1 )"; then
       printf 'Removed the old image %s\n' "${id#sha256:}"
+    else
+      printf 'Kept the old image %s: %s\n' "${id#sha256:}" "$(tail -1 <<< "$reason")"
     fi
   done
 }

@@ -124,6 +124,21 @@ teardown() {
 
   [ "$status" -eq 0 ]
   ! docker_calls | grep -q 'image rm'
+  [[ "$output" == *"Kept the old image s1, another container uses it"* ]]
+}
+
+@test "an image docker refuses to remove is kept and the reason is shown" {
+  make_stack alpha
+  add_running alpha app "$(stack_hash alpha)" 2021-01-01T00:00:00Z example/alpha:1 sha256:a1
+  cp "$FAKE_DOCKER_CONTAINERS" "$SANDBOX/after"
+  sed -i 's/sha256:a1/sha256:a2/' "$SANDBOX/after"
+  export FAKE_DOCKER_CONTAINERS_AFTER_UP="$SANDBOX/after" FAKE_DOCKER_FAIL_IMAGE_RM=sha256:a1
+
+  run "$SCRIPTS/apply.sh" alpha --pull app
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Kept the old image a1: Error response from daemon: conflict: unable to delete sha256:a1"* ]]
+  [[ "$output" == *"Done."* ]]
 }
 
 @test "apply refuses to run while the hook holds the lock" {
