@@ -8,17 +8,30 @@
 > lived on many boxes yet. Read the code before you point it at stacks you care about.
 
 A small Unraid plugin for people who keep their Docker Compose stacks in a git repository and
-deploy from a terminal. It does two things:
+deploy from a terminal. It brings the stacks up when Docker starts and shows them on a Compose
+tab next to Docker: containers, health, versions, resource use, whether what runs still matches
+the files on disk, and whether a newer image is out, with an icon menu whose every entry is one
+`docker compose` command.
 
-1. **Brings your stacks up when Docker starts**, including after Settings, Docker, off and on,
-   without touching the network. This is the part that has to be a plugin.
-2. **Shows them on a Compose tab next to Docker**: every stack with its containers, health, version,
-   CPU, memory and uptime, whether what runs still matches the files on disk, and whether Unraid
-   found a newer image. Each row's icon opens the same kind of menu as on the Docker tab, and every
-   entry in it is one `docker compose` command whose output streams into a dialog.
+## Install
 
-Nothing else on the page changes a container. Removing a stack and syncing files are terminal
-jobs; **Stack commands** in the icon menu writes those commands out with the right paths.
+In **Plugins, Install Plugin**, paste:
+
+```
+https://github.com/slakje-nl/compose2unraid/releases/latest/download/compose2unraid.plg
+```
+
+The plugin downloads a static `docker compose` release once (pinned by version and SHA-256),
+keeps it on the flash drive, and installs it to `/usr/local/lib/docker/cli-plugins/` at every
+boot. That is the `docker compose` the box uses; uninstalling removes it again. The page is the
+**Compose** tab in the top bar, between Docker and VMs, shown while Docker runs.
+
+The only setting is the base path, `/mnt/user/appdata/compose2unraid` by default. To change it,
+put `BASE_PATH="/mnt/cache/compose2unraid"` in
+`/boot/config/plugins/compose2unraid/compose2unraid.cfg` (a pool path skips the fuse layer, which
+compose bind mounts appreciate). `stacks/` lives under it.
+
+Uninstalling leaves your containers running and the base path untouched.
 
 ## How it works
 
@@ -45,113 +58,6 @@ The plugin creates `stacks/` when it is installed (or, if the array was not up y
 starts). Every directory directly under it with a compose file is a stack. The project name is
 the directory name, always, so container names stay stable and `docker compose ls` shows what
 the page shows. Compose finds `compose.yaml` and the override file by itself.
-
-### What the page shows
-
-Each stack is a table headed by its name, with a row for every service in its compose file and
-for every container it still has, so a stack is listed as soon as its files are synced. The
-**Stack** column says how the row relates to the files on disk:
-
-- **up to date** (green): the stack runs the configuration that is on disk.
-- **changed** (orange): `docker compose up` would create, recreate or remove something in this
-  stack, because the compose file, the override or an interpolated `.env` value differs from what
-  runs, or because a service now names an image the box has not pulled yet. This is Compose's own
-  dry run of the files on disk; **Show diff** names the containers, or the image.
-- **removed on disk** (orange): the service is no longer in the file.
-- **not deployed** (grey): the service is in the file but has no container yet.
-- **not checked** (grey): the stack appeared on disk after the last check; click **Refresh
-  stacks**.
-- **no files** (red): the container was started from a directory under `stacks/` that is no
-  longer there. Compose projects you run from anywhere else are not the plugin's business and are
-  not listed.
-
-A stack Compose cannot read shows a red **compose error** on every row (next to its name when it
-has none) and prints Compose's message in a red line below its last row. A file that names an
-`env_file` that is not there says **missing .env**, and that line names the path.
-
-Under each container: **stopped**, or health from its healthcheck (**n/a** when the image defines
-none); the image tag, or a short digest for pinned images, with **update ready** beneath it when the
-last **Check for updates** found a newer one; CPU as a share of the whole box, memory and
-uptime. The badge clears as soon as the image on the box carries the digest Unraid saw, without
-waiting for the next check.
-
-Container state, health, CPU, memory and uptime refresh in place every five seconds while the
-tab is visible. Whether the files still match what runs is Compose's own dry run, one compose
-process per stack, so it is checked when the page opens, after every action, and when you click
-**Refresh stacks** below the tables; a stack synced to disk since then says **not checked**
-until you do. **Check for updates** next to it opens a window that asks the registry about
-every image your stacks use, one by one, through Unraid's own update code, and ends with how
-many have a newer version. Unraid's own **Check for Updates** on the Docker tab skips
-containers it did not create, so it never covers these; this one writes the same status file,
-so the **update ready** badge and the Docker tab agree.
-
-### The icon menu
-
-Under **Container**, while the stack runs:
-
-- **Stop** or **Start**, and **Restart**: that one service.
-- **Logs (new tab)**: Unraid's own log window, following the container's log.
-- **Logs (popup)**: the last 200 lines and everything after, in the same dialog as the actions,
-  until you close it.
-- **Update and restart** (or **and start**), only when Unraid flagged the image: pulls that
-  service's image, recreates the container and removes the image it replaced if nothing else
-  uses it. Nothing else in the stack is touched, not even a service it depends on.
-
-Under **Stack**:
-
-- **Stop** or **Start stack**, and **Restart stack**: every service.
-- **Recreate stack**: every container again from its image (`up -d --force-recreate`), for the
-  rare case nothing else catches, such as a stale external network or a container left half-way.
-- **Show diff** and **Sync stack**, when the files and the containers differ: the first prints
-  what Compose would create, recreate or remove, the second does it (`up -d --remove-orphans`).
-- **Update images**, when other services in the stack are flagged too: the same pull and recreate
-  for all of them.
-- **Stack commands**: the popup with the terminal commands, `down` included. A stack whose
-  directory is gone gets this entry only.
-
-Closing a dialog stops the command and refreshes the table.
-
-### Boot
-
-When Docker starts, the plugin waits for the daemon and runs `docker compose up -d --no-recreate`
-for every stack on disk, one after the other, in the background: Docker's own start does not wait
-for the stacks, and a stack that takes long to come up holds up nothing but the stacks after it.
-A stack that fails is logged, with Compose's output, to syslog and to
-`/var/log/compose2unraid/compose2unraid.log`, and the next one still starts. Nothing is recreated,
-and nothing is pulled unless a service's image is not on the box at all, so a box without a
-network still brings up everything it has. Put `restart: always` in your services so the daemon
-itself restarts them when it restarts.
-
-### Promises
-
-- A container's image changes only when you click **Update and restart** on it or pull it
-  yourself. Nothing pulls in the background, and neither **Sync stack** nor boot pulls an image
-  the box already has; only an image the box has never seen is pulled, once.
-- Boot never depends on any git host, and on the network only for an image the box does not
-  have yet.
-- Nothing changes without a click, and a click does exactly what its entry says, for that stack
-  or that service only.
-- A stack whose files are broken is shown as such; the others are unaffected.
-
-## Install
-
-In **Plugins, Install Plugin**, paste:
-
-```
-https://github.com/slakje-nl/compose2unraid/releases/latest/download/compose2unraid.plg
-```
-
-The plugin downloads a static `docker compose` release once (pinned by version and SHA-256),
-keeps it on the flash drive, and installs it to `/usr/local/lib/docker/cli-plugins/` at every
-boot. That is the `docker compose` the box uses; uninstalling removes it again. The page is the
-**Compose** tab in the top bar, between Docker and VMs, shown while Docker runs.
-
-The only setting is the base path, `/mnt/user/appdata/compose2unraid` by default. To change it,
-put `BASE_PATH="/mnt/cache/compose2unraid"` in
-`/boot/config/plugins/compose2unraid/compose2unraid.cfg` (a pool path skips the fuse layer, which
-compose bind mounts appreciate). `stacks/` lives under it.
-
-Uninstalling leaves your containers running and the base path untouched.
 
 ## Requirements
 

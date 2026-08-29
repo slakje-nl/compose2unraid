@@ -95,7 +95,7 @@ The approved set:
 
 ## Promises to the user
 
-These are written in the README and every change must keep them true.
+Every change must keep them true.
 
 - **A container's image changes only when the user asks**: the update link on a service Unraid
   flagged, or a pull in a terminal. The boot hook uses `--no-recreate`, apply and the hook pull
@@ -395,8 +395,8 @@ it is protecting. Anything they turn up that is not listed above as expected is 
 
 - **`CLAUDE.md`** is permanent: conventions, architecture, the promises, the privacy rules.
   Anything that must still be true in a year lives here.
-- **`README.md`** is the only user-facing document: what the plugin does and does not do, the
-  promises, install, the stacks directory layout, what the page shows, uninstall.
+- **`README.md`** is the only user-facing document, kept short: what the plugin does, install,
+  the stacks directory layout, requirements, uninstall.
 
 Any change that alters externally-visible behaviour (a config key, a path on the box, what the
 page shows, what the hook does at boot) MUST update `README.md` in the same commit.
