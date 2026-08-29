@@ -264,9 +264,9 @@ function compose2unraid_stack_line(array $entry, array $row, string $basePath): 
         return compose2unraid_badge('red', 'times-circle', 'no files');
     }
     if ($entry['drift'] === 'broken') {
-        [$label, $hint] = compose2unraid_problem($entry, $basePath);
+        $label = compose2unraid_problem($entry, $basePath)[0];
 
-        return compose2unraid_badge('red', 'times-circle', $label, $hint);
+        return compose2unraid_badge('red', 'times-circle', $label);
     }
     if ($row['container'] === null) {
         return compose2unraid_badge('grey', 'circle-o', 'not deployed');

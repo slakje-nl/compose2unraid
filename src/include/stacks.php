@@ -54,8 +54,8 @@ $columns .= '</colgroup>';
         <th class="c2u-stack-name">
           <?= $h($stack) ?>
           <?php if ($entry['drift'] === 'broken' && $rows === []): ?>
-            <?php [$label, $hint] = compose2unraid_problem($entry, $basePath) ?>
-            <span class="c2u-note red-text" title="<?= $h($hint) ?>">
+            <?php $label = compose2unraid_problem($entry, $basePath)[0] ?>
+            <span class="c2u-note red-text">
               <i class="fa fa-exclamation-triangle"></i> <?= $h($label) ?>
             </span>
           <?php endif ?>
@@ -134,6 +134,14 @@ $columns .= '</colgroup>';
         </td>
       </tr>
     <?php endforeach ?>
+    <?php if ($entry['drift'] === 'broken'): ?>
+      <?php [$label, $hint] = compose2unraid_problem($entry, $basePath) ?>
+      <tr>
+        <td colspan="7" class="red-text">
+          <i class="fa fa-exclamation-triangle"></i> <?= $h($label) ?>: <?= $h($hint) ?>
+        </td>
+      </tr>
+    <?php endif ?>
     </tbody>
   </table>
 <?php endforeach ?>

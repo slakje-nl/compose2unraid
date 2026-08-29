@@ -65,8 +65,8 @@ for every container it still has, so a stack is listed as soon as its files are 
   not listed.
 
 A stack Compose cannot read shows a red **compose error** on every row (next to its name when it
-has none), with Compose's message when you hover over it. A file that names an `env_file` that
-is not there says **missing .env**, and the hover names the path.
+has none) and prints Compose's message in a red line below its last row. A file that names an
+`env_file` that is not there says **missing .env**, and that line names the path.
 
 Under each container: **stopped**, or health from its healthcheck (**n/a** when the image defines
 none); the image tag, or a short digest for pinned images, with **update ready** beneath it when
