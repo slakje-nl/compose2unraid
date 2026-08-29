@@ -70,7 +70,6 @@ expect($fragment, $stackCell('red', 'times-circle', 'no files'), 'a container wi
 expect($fragment, $stackCell('orange', 'bolt', 'removed on disk'), 'a container whose service left the file says so');
 expect($fragment, '<span class="appname">beta-old-1</span>', 'that container is still listed');
 refuse($fragment, '/not in stacks|not started yet|in sync|changed: app/', 'the header carries no state, the stack column does');
-expect($fragment, 'title="The compose file needs /tmp/compose2unraid/stacks/noenv/.env. Create it, even empty.">' . "\n" . '              <i class="fa fa-exclamation-triangle"></i> missing .env', 'a missing .env is named, with the path on hover');
 expect($fragment, 'update ready', 'a container Unraid flagged shows the badge');
 expect($fragment, '<i class="fa fa-bolt"></i> update ready</span>', 'update ready is a plain badge');
 refuse($fragment, '/<a[^>]*>[^<]*<i class="fa fa-bolt"><\/i> update ready/', 'update ready is not a link');
@@ -100,10 +99,16 @@ refuse($fragment, '/c2u-commands" data-stack="(alpha|gamma)"/', 'a stack with ro
 if (substr_count($fragment, 'No services yet.') !== 1) {
     $failures[] = 'only the stack with nothing to show says No services yet';
 }
-expect($fragment, '<td><span class="red-text" title="yaml: line 3: did not find expected key"><i class="fa fa-times-circle"></i> compose error</span></td>', 'every row of a broken stack says compose error, with the message on hover');
+expect($fragment, '<td><span class="red-text"><i class="fa fa-times-circle"></i> compose error</span></td>', 'every row of a broken stack says compose error');
+refuse($fragment, '/title="(yaml|The compose file)/', 'the message is printed, not hidden in a tooltip');
 refuse($fragment, '/torn-app-1.*removed on disk/s', 'a broken stack does not call its containers removed');
-refuse($fragment, '/c2u-note red-text" title="yaml/', 'a broken stack with rows has no header label');
-expect($fragment, 'title="The compose file needs /tmp/compose2unraid/stacks/noenv/.env. Create it, even empty.">' . "\n" . '              <i class="fa fa-exclamation-triangle"></i> missing .env', 'a broken stack without rows keeps the label in its header');
+expect($fragment, 'torn-app-1</span>', 'the broken stack lists its container');
+if (preg_match('/torn-app-1.*?<td colspan="7" class="red-text">\s*<i class="fa fa-exclamation-triangle"><\/i> compose error: yaml: line 3: did not find expected key\s*<\/td>/s', $fragment) !== 1) {
+    $failures[] = 'a broken stack prints the compose error below its last container';
+}
+expect($fragment, '<i class="fa fa-exclamation-triangle"></i> missing .env: The compose file needs /tmp/compose2unraid/stacks/noenv/.env. Create it, even empty.', 'a missing .env is printed in full below the rows');
+refuse($fragment, '/torn\s*<span class="c2u-note red-text"/', 'a broken stack with rows has no header label');
+expect($fragment, '<span class="c2u-note red-text">' . "\n" . '              <i class="fa fa-exclamation-triangle"></i> missing .env', 'a broken stack without rows keeps the label in its header');
 $cpuBar = '<span class="c2u-usage">0.19%<span class="c2u-bar"><span style="width: 0.2%"';
 expect($fragment, $cpuBar, 'cpu is the share of the whole box, with a bar as wide as its text');
 $memoryBar = '31.2 MiB / 125.70 GiB<span class="c2u-bar"><span style="width: 0.0%"';
