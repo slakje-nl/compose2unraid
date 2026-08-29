@@ -156,6 +156,16 @@ refuse_missing_env_file() {
   fi
 }
 
+refuse_missing_images() {
+  local image
+  while read -r image; do
+    if listed FAKE_DOCKER_MISSING_IMAGES "$image"; then
+      printf 'Error response from daemon: No such image: %s\n' "$image" >&2
+      exit 1
+    fi
+  done < <(awk '/^    image:/ { print $2 }' "$1"/*compose.y*ml)
+}
+
 config_json() {
   local dir="$1" file name
   for name in compose.yaml compose.yml docker-compose.yaml docker-compose.yml; do
@@ -201,6 +211,7 @@ fake_compose() {
     sleep 5
   fi
   if [[ "$subcommand" == up && "$*" == *"--dry-run"* ]]; then
+    refuse_missing_images "$(option_value --project-directory "$@")"
     dry_run_plan "$project" "$(option_value --project-directory "$@")"
     return 0
   fi

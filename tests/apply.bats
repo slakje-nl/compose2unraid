@@ -219,6 +219,13 @@ teardown() {
   [ "$status" -eq 0 ]
   [[ "$output" == *"Nothing of fresh is running yet. Sync stack would create:"* ]]
   [[ "$output" == *"Container fresh-app-1 Creating"* ]]
+
+  make_stack bumped 2
+  add_running bumped app oldhash
+  export FAKE_DOCKER_MISSING_IMAGES=example/bumped:2
+  run "$SCRIPTS/apply.sh" bumped --diff
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Sync stack would pull example/bumped:2, which is not on the box yet"* ]]
 }
 
 @test "recreate brings every container of the stack up again from its image" {

@@ -143,6 +143,10 @@ plan_changes_something() {
   grep -Eq '(^| )(Container|Network|Volume) [^ ]+ +(Recreate|Creating|Removing)( |$)' <<< "$1"
 }
 
+image_the_plan_lacks() {
+  sed -nE 's/.*No such image: ([^ ]+).*/\1/p' <<< "$1" | tail -1
+}
+
 stack_drift() {
   local stack="$1" plan
   if ! has_containers "$stack"; then
@@ -154,6 +158,10 @@ stack_drift() {
   plan="$(planned_changes "$stack")" || status=$?
   if (( status == 124 || status == 143 )); then
     printf 'broken compose did not answer within %ss\n' "$COMPOSE_TIMEOUT_SECONDS"
+    return 0
+  fi
+  if (( status != 0 )) && [[ -n "$(image_the_plan_lacks "$plan")" ]]; then
+    printf 'changed\n'
     return 0
   fi
   if (( status != 0 )); then

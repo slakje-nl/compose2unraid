@@ -42,8 +42,15 @@ planned_lines() {
 }
 
 show_diff() {
-  local stack="$1" status=0 plan
+  local stack="$1" status=0 plan image
   plan="$(planned_changes "$stack")" || status=$?
+  image="$(image_the_plan_lacks "$plan")"
+  if (( status != 0 )) && [[ -n "$image" ]]; then
+    printf 'Sync stack would pull %s, which is not on the box yet, and recreate what uses it.\n' \
+      "$image"
+    printf 'Compose can only plan the rest once the image is here.\n'
+    return 0
+  fi
   if (( status != 0 )); then
     printf 'Compose cannot read %s: %s\n' "$stack" "$(tail -1 <<< "$plan")"
     return 1

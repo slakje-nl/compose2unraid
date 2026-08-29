@@ -55,7 +55,8 @@ for every container it still has, so a stack is listed as soon as its files are 
 - **up to date** (green): the stack runs the configuration that is on disk.
 - **changed** (orange): `docker compose up` would create, recreate or remove something in this
   stack, because the compose file, the override or an interpolated `.env` value differs from what
-  runs. This is Compose's own dry run of the files on disk; **Show diff** names the containers.
+  runs, or because a service now names an image the box has not pulled yet. This is Compose's own
+  dry run of the files on disk; **Show diff** names the containers, or the image.
 - **removed on disk** (orange): the service is no longer in the file.
 - **not deployed** (grey): the service is in the file but has no container yet.
 - **not checked** (grey): the stack appeared on disk after the last check; click **Refresh
