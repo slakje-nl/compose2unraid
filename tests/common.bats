@@ -113,6 +113,17 @@ teardown() {
   [ "$output" = $'changed\ninsync' ]
 }
 
+@test "a service bumped to an image the box has not pulled is changed, not broken" {
+  make_stack bumped 2
+  add_running bumped app oldhash
+  export FAKE_DOCKER_MISSING_IMAGES=example/bumped:2
+
+  run bash -c "source '$SCRIPTS/common.sh'; load_config; stack_drift bumped"
+
+  [ "$status" -eq 0 ]
+  [ "$output" = "changed" ]
+}
+
 @test "the plan is read by its words, with or without the dry-run prefix compose 2.x prints" {
   pinned=$' Container alpha-app-1 Running \n Container alpha-db-1 Recreate \n Container alpha-db-1 Recreated '
   older=$'  DRY-RUN MODE -  Network alpha_default Creating \n  DRY-RUN MODE -  Container alpha-app-1 Creating '

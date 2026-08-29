@@ -152,7 +152,11 @@ These are written in the README and every change must keep them true.
   `changed`; nothing is attributed to a service, "Show diff" prints the plan for that. The plan
   lines are `Container <name> Recreate` in the pinned compose and ` DRY-RUN MODE -  Container
   <name> Recreate` in the 2.x line, so `plan_changes_something` matches the words wherever they
-  sit on the line, never a field position. Apply runs the same
+  sit on the line, never a field position. A dry run that fails with `No such image: <ref>` is
+  `changed` too, not `broken`: Compose's dry-run client fakes the pull but inspects the new
+  image for real when it recreates an existing container (`create.go`, inheriting anonymous
+  volumes), so a version bump of a running service can never plan; `image_the_plan_lacks`
+  reads the reference and "Show diff" names it. Apply runs the same
   command without `--dry-run`, so the page and the action can never
   disagree. No containers is `new`; containers started from under `stacks/` (their
   `com.docker.compose.project.working_dir` label) whose directory is gone is `gone`, and a
