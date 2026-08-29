@@ -3,13 +3,16 @@ set -euo pipefail
 source "${BASH_SOURCE[0]%/*}/common.sh"
 
 bring_up() {
-  local stack="$1"
-  if compose "$stack" up -d --no-recreate >> "$LOG_FILE" 2>&1; then
+  local stack="$1" status=0 output
+  output="$(compose "$stack" up -d --no-recreate 2>&1)" || status=$?
+  if (( status == 0 )); then
     log info "$stack is up"
-  else
-    log error "$stack could not be brought up, the compose output is in $LOG_FILE"
-    return 1
+    return 0
   fi
+
+  log error "$stack could not be brought up: $(tail -1 <<< "$output")"
+  printf '%s\n' "$output" >> "$LOG_FILE"
+  return 1
 }
 
 main() {

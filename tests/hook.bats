@@ -30,6 +30,7 @@ teardown() {
   plugin_log | grep -q 'alpha could not be brought up'
   plugin_log | grep -q 'compose up failed for alpha'
   plugin_log | grep -q 'beta is up'
+  ! plugin_log | grep -q 'compose up ok for beta'
   plugin_log | grep -q '1 stack(s) did not come up'
 }
 
