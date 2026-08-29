@@ -140,7 +140,9 @@ These are written in the README and every change must keep them true.
   <name> Recreate` in the 2.x line, so `plan_changes_something` matches the words wherever they
   sit on the line, never a field position. Apply runs the same
   command without `--dry-run`, so the page and the action can never
-  disagree. No containers is `new`; containers without a directory is `gone`; a plan Compose
+  disagree. No containers is `new`; containers started from under `stacks/` (their
+  `com.docker.compose.project.working_dir` label) whose directory is gone is `gone`, and a
+  compose project started from anywhere else is not listed at all; a plan Compose
   cannot make (a file it cannot read) is `broken` with the last line of its error; everything
   else is `insync`. Files a service bind-mounts are not part of the plan and not tracked. The
   read-only compose calls in `status.sh` run under `timeout` (60 seconds): `compose up` waits for
