@@ -19,6 +19,8 @@ teardown() {
   grep -q '<INLINE><!\[CDATA\[#!/bin/bash' "$PLG_OUT"
   [ "$(grep -c '<FILE Name="/usr/local/emhttp' "$PLG_OUT")" -eq "$(find "$ROOT/src" -type f | wc -l)" ]
   grep -q 'mkdir -p "$base/stacks"' "$PLG_OUT"
+  grep -q '> /etc/logrotate.d/&name;$' "$PLG_OUT"
+  grep -q '^rm -f &composeTarget; /etc/logrotate.d/&name;$' "$PLG_OUT"
 }
 
 @test "a build without a version gets a dated dev version" {

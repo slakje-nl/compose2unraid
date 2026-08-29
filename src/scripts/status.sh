@@ -37,7 +37,6 @@ on_disk_entry() {
     return 0
   fi
 
-  cat "$errors" >> "$LOG_FILE"
   read -r drift detail < <(stack_drift "$stack")
   stack_entry "$stack" "$drift" "${detail:-}" "$(defined_services "$stack" <<< "$config")"
 }

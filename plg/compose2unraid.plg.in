@@ -40,6 +40,9 @@ mkdir -p &plugdir; &flashdir; /var/log/&name;
 <INLINE>
 set -euo pipefail
 
+printf '%s\n' "/var/log/&name;/&name;.log {" "  size 1M" "  rotate 1" "  missingok" \
+  "  notifempty" "  copytruncate" "}" > /etc/logrotate.d/&name;
+
 mkdir -p "$(dirname &composeTarget;)"
 install -m 0755 "&flashdir;/bin/docker-compose-&composeVersion;" &composeTarget;
 find "&flashdir;/bin" -name 'docker-compose-*' ! -name "docker-compose-&composeVersion;" -delete
@@ -62,7 +65,7 @@ echo "&name; &version; installed with docker compose &composeVersion;"
 
 <FILE Run="/bin/bash" Method="remove">
 <INLINE>
-rm -f &composeTarget;
+rm -f &composeTarget; /etc/logrotate.d/&name;
 rm -rf &plugdir;
 echo "&name; removed. The stacks keep running; their files and the settings stay under the base path and on flash."
 </INLINE>

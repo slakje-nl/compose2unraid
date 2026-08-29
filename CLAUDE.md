@@ -166,7 +166,10 @@ These are written in the README and every change must keep them true.
   every fifteen seconds (never while the tab is hidden), replacing that div each time. Nothing
   on the page itself runs `status.sh`. No timed reload.
 - **Logging is one function**, `log`, which writes to `/var/log/compose2unraid/compose2unraid.log`
-  and to syslog via `logger -t compose2unraid`.
+  and to syslog via `logger -t compose2unraid`, and it records actions and their failures only:
+  nothing on a page refresh, and compose output only when a stack fails at boot. `/var/log` is a
+  small tmpfs on Unraid, so the `.plg` writes `/etc/logrotate.d/compose2unraid` (1 MB, one
+  rotation) and removes it on uninstall.
 
 Where things live on the box:
 
