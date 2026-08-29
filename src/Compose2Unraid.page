@@ -27,47 +27,8 @@ table.tablesorter.c2u-stack tbody tr td {
 }
 .c2u-bar > span { display: block; height: 100%; background: currentColor; opacity: 0.6; }
 .c2u-stack th.c2u-stack-name a { font-weight: normal; }
-#c2u-help, #c2u-run {
-  max-width: 1000px; width: 92%; max-height: 90vh; border: none; border-radius: 4px;
-  padding: 20px 24px; color: inherit; background: var(--background-color, #f2f2f2);
-}
-#c2u-help::backdrop, #c2u-run::backdrop { background: rgba(0, 0, 0, 0.5); }
-#c2u-run { height: 70vh; }
-#c2u-run[open] { display: flex; flex-direction: column; }
-#c2u-run h3 { margin: 0 0 10px; }
-#c2u-run iframe { width: 100%; flex: 1; min-height: 0; border: none; background: transparent; }
 .c2u-actions { margin-top: 8px; }
-#c2u-help h3 { margin: 0 0 6px; }
-#c2u-help table { width: 100%; border-collapse: collapse; }
-#c2u-help th { text-align: left; padding: 14px 8px 4px; text-transform: uppercase; }
-#c2u-help td {
-  padding: 6px 8px; vertical-align: middle; border-top: 1px solid rgba(128, 128, 128, 0.25);
-}
-#c2u-help td:first-child { width: 30%; }
-#c2u-help td:last-child { width: 1%; }
-#c2u-help code { display: block; overflow-wrap: anywhere; }
-#c2u-help .c2u-help-actions { text-align: center; margin-top: 12px; }
 </style>
-
-<dialog id="c2u-run">
-  <h3 id="c2u-run-title"></h3>
-  <form id="c2u-run-form" method="POST" action="/plugins/compose2unraid/include/run.php"
-    target="c2u-run-frame">
-    <input type="hidden" name="csrf_token" value="<?= compose2unraid_h($var['csrf_token']) ?>">
-    <input type="hidden" name="action">
-    <input type="hidden" name="stack">
-    <input type="hidden" name="services">
-  </form>
-  <iframe id="c2u-run-frame" name="c2u-run-frame" title="Output"></iframe>
-</dialog>
-
-<dialog id="c2u-help">
-  <h3>Commands for <span id="c2u-help-stack"></span></h3>
-  <table id="c2u-help-commands"></table>
-  <div class="c2u-help-actions">
-    <input type="button" value="Close" onclick="document.getElementById('c2u-help').close()">
-  </div>
-</dialog>
 
 <div id="c2u-content"><p class="grey-text">Reading the stacks...</p></div>
 <div class="c2u-actions">
@@ -76,72 +37,9 @@ table.tablesorter.c2u-stack tbody tr td {
 </div>
 
 <script>
-function c2uCopy(text) {
-  if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(text);
-    return;
-  }
-  var host = document.getElementById('c2u-help');
-  var scratch = document.createElement('textarea');
-  scratch.value = text;
-  scratch.setAttribute('readonly', '');
-  scratch.style.position = 'fixed';
-  scratch.style.opacity = '0';
-  host.appendChild(scratch);
-  scratch.focus();
-  scratch.select();
-  document.execCommand('copy');
-  host.removeChild(scratch);
-}
-
-function c2uShowCommands(stack, base) {
-  var dialog = document.getElementById('c2u-help');
-  var table = document.getElementById('c2u-help-commands');
-  var dir = base + '/stacks/' + stack;
-  var sections = [
-    ['Where it lives', [['Stack directory', dir], ['Secrets file, optional', dir + '/.env']]],
-    ['After syncing new files', [
-      ['Apply changes', 'docker compose up -d --remove-orphans'],
-      ['Recreate everything', 'docker compose up -d --force-recreate --remove-orphans']
-    ]],
-    ['Images', [['Update images', 'docker compose pull && docker compose up -d --remove-orphans']]],
-    ['Remove', [
-      ['Remove with volumes', 'docker compose -p ' + stack + ' down --remove-orphans --volumes']
-    ]]
-  ];
-  document.getElementById('c2u-help-stack').textContent = stack;
-  table.innerHTML = '';
-  sections.forEach(function (section) {
-    var heading = document.createElement('tr');
-    var cell = document.createElement('th');
-    cell.colSpan = 3;
-    cell.textContent = section[0];
-    heading.appendChild(cell);
-    table.appendChild(heading);
-    section[1].forEach(function (row) {
-      var tr = document.createElement('tr');
-      var what = document.createElement('td');
-      what.textContent = row[0];
-      var command = document.createElement('td');
-      var code = document.createElement('code');
-      code.textContent = row[1];
-      command.appendChild(code);
-      var action = document.createElement('td');
-      var copy = document.createElement('input');
-      copy.type = 'button';
-      copy.value = 'Copy';
-      copy.onclick = function () {
-        c2uCopy(row[1]);
-        copy.value = 'Copied';
-      };
-      action.appendChild(copy);
-      tr.appendChild(what);
-      tr.appendChild(command);
-      tr.appendChild(action);
-      table.appendChild(tr);
-    });
-  });
-  dialog.showModal();
+function c2uShowCommands(stack) {
+  openBox('/plugins/compose2unraid/include/commands.php?stack=' + encodeURIComponent(stack),
+    'Commands for ' + stack, 600, 900, true, 'c2uCommandsDone');
 }
 
 function c2uTitle(action, stack, services) {
@@ -171,13 +69,10 @@ function c2uCheckUpdates(button) {
 }
 
 function c2uRun(action, stack, services) {
-  var form = document.getElementById('c2u-run-form');
-  document.getElementById('c2u-run-title').textContent = c2uTitle(action, stack, services);
-  form.elements.action.value = action;
-  form.elements.stack.value = stack;
-  form.elements.services.value = services;
-  document.getElementById('c2u-run').showModal();
-  form.submit();
+  var url = '/plugins/compose2unraid/include/run.php?action=' + encodeURIComponent(action)
+    + '&stack=' + encodeURIComponent(stack) + '&services=' + encodeURIComponent(services)
+    + '&csrf_token=' + csrf_token;
+  openBox(url, c2uTitle(action, stack, services), 600, 900, true, 'c2uRunDone');
 }
 
 function c2uMenu(icon) {
@@ -231,25 +126,25 @@ function c2uMenu(icon) {
   }
   opts.push({text: 'Stack commands', icon: 'fa-terminal', action: function (event) {
     event.preventDefault();
-    c2uShowCommands(data.stack, data.base);
+    c2uShowCommands(data.stack);
   }});
   context.settings({right: false, above: 'auto'});
   context.attach('#' + icon.id, opts);
 }
 
 function c2uRunDone() {
-  document.getElementById('c2u-run').close();
+  c2uRefresh(true);
+}
+
+function c2uCommandsDone() {
+  c2uRefresh(false);
 }
 
 document.addEventListener('click', function (event) {
-  var link = event.target.closest('a.c2u-commands, a.c2u-run');
+  var link = event.target.closest('a.c2u-commands');
   if (!link) { return; }
   event.preventDefault();
-  if (link.classList.contains('c2u-run')) {
-    c2uRun(link.dataset.action, link.dataset.stack, link.dataset.services || '');
-  } else {
-    c2uShowCommands(link.dataset.stack, link.dataset.base);
-  }
+  c2uShowCommands(link.dataset.stack);
 });
 
 var c2uRefresh;
@@ -291,11 +186,6 @@ var c2uRefresh;
     timer = setTimeout(function () { refresh(false); }, 5000);
   }
   c2uRefresh = function (withDrift, done) { clearTimeout(timer); refresh(withDrift, done); };
-  document.getElementById('c2u-run').addEventListener('close', function () {
-    document.getElementById('c2u-run-frame').src = 'about:blank';
-    c2uRefresh(true);
-  });
-  document.getElementById('c2u-help').addEventListener('close', function () { c2uRefresh(false); });
   refresh(true);
 })();
 </script>
