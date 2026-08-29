@@ -58,8 +58,9 @@ for every container it still has, so a stack is listed as soon as its files are 
   runs. This is Compose's own dry run of the files on disk; **Show diff** names the containers.
 - **removed on disk** (orange): the service is no longer in the file.
 - **not deployed** (grey): the service is in the file but has no container yet.
-- **no files** (red): the container exists but there is no directory for its project name under
-  `stacks/`.
+- **no files** (red): the container was started from a directory under `stacks/` that is no
+  longer there. Compose projects you run from anywhere else are not the plugin's business and are
+  not listed.
 
 A stack Compose cannot read shows a red **compose error** on every row (next to its name when it
 has none), with Compose's message when you hover over it. A file that names an `env_file` that
@@ -94,8 +95,8 @@ Under **Stack**:
   what Compose would create, recreate or remove, the second does it (`up -d --remove-orphans`).
 - **Update images**, when other services in the stack are flagged too: the same pull and recreate
   for all of them.
-- **Stack commands**: the popup with the terminal commands, `down` included. A container whose
-  project is not under `stacks/` gets this entry only.
+- **Stack commands**: the popup with the terminal commands, `down` included. A stack whose
+  directory is gone gets this entry only.
 
 Closing a dialog stops the command and refreshes the table.
 

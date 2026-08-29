@@ -39,6 +39,18 @@ teardown() {
   [ "$(printf '%s' "$output" | jq -c '.containers[0].digests')" = '["sha256:same-1"]' ]
 }
 
+@test "a compose project started from outside the stacks directory is not the plugin's business" {
+  make_stack alpha
+  add_running alpha
+  add_foreign other
+  add_running gone app x
+
+  run status_json
+
+  [ "$status" -eq 0 ]
+  [ "$(printf '%s' "$output" | jq -c '[.stacks[] | [.name, .drift]]')" = '[["alpha","insync"],["gone","gone"]]' ]
+}
+
 @test "status fails when docker fails, rather than showing a partial table" {
   make_stack alpha
   add_running alpha

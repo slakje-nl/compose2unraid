@@ -12,6 +12,7 @@ LOG_FILE="$LOG_DIR/$PLUGIN_NAME.log"
 COMPOSE_FILE_NAMES=(compose.yaml compose.yml docker-compose.yaml docker-compose.yml)
 COMPOSE_PROJECT_LABEL=com.docker.compose.project
 COMPOSE_SERVICE_LABEL=com.docker.compose.service
+COMPOSE_WORKING_DIR_LABEL=com.docker.compose.project.working_dir
 DOCKER_WAIT_SECONDS=120
 
 STACKS_DIR=""
@@ -110,9 +111,11 @@ stacks() {
   done
 }
 
-running_projects() {
-  docker ps -a --filter "label=$COMPOSE_PROJECT_LABEL" \
-    --format "{{.Label \"$COMPOSE_PROJECT_LABEL\"}}" | sort -u
+projects_started_from_stacks() {
+  local format="{{.Label \"$COMPOSE_PROJECT_LABEL\"}}{{\"\\t\"}}"
+  format+="{{.Label \"$COMPOSE_WORKING_DIR_LABEL\"}}"
+  docker ps -a --filter "label=$COMPOSE_PROJECT_LABEL" --format "$format" |
+    awk -F '\t' -v dir="$STACKS_DIR/" 'index($2, dir) == 1 { print $1 }' | sort -u
 }
 
 compose() {

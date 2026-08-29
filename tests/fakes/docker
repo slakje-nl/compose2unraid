@@ -227,7 +227,9 @@ fake_ps() {
   service="$(all_filters "$@" | awk -F= '/^label=com.docker.compose.service=/ { print $3 }')"
   case "$filter" in
     label=com.docker.compose.project)
-      if [[ "$format" == *'.Label "com.docker.compose.project"'* ]]; then
+      if [[ "$format" == *'.Label "com.docker.compose.project.working_dir"'* ]]; then
+        containers_fixture | awk '{ print $2 "\t" $8 }'
+      elif [[ "$format" == *'.Label "com.docker.compose.project"'* ]]; then
         containers_fixture | awk '{ print $2 }'
       else
         containers_fixture | awk '{ print $1 }'

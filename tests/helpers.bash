@@ -47,8 +47,13 @@ stack_hash() {
 add_running() {
   local name="$1" service="${2:-app}" hash="${3:-$(stack_hash "$1")}"
   local created="${4:-2021-01-01T00:00:00Z}" image="${5:-example/$1:1}" image_id="${6:-sha256:$1-1}"
-  printf '%s %s %s %s %s %s %s\n' "c-$name-$service" "$name" "$service" "$image" "$image_id" \
-    "$hash" "$created" >> "$FAKE_DOCKER_CONTAINERS"
+  local dir="${7:-$STACKS/$name}"
+  printf '%s %s %s %s %s %s %s %s\n' "c-$name-$service" "$name" "$service" "$image" "$image_id" \
+    "$hash" "$created" "$dir" >> "$FAKE_DOCKER_CONTAINERS"
+}
+
+add_foreign() {
+  add_running "$1" app x 2021-01-01T00:00:00Z "example/$1:1" "sha256:$1-1" "/elsewhere/$1"
 }
 
 docker_calls() {

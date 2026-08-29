@@ -48,7 +48,7 @@ gone_entries() {
     [[ " $* " == *" $stack "* ]] && continue
     valid_stack_name "$stack" || continue
     stack_entry "$stack" gone
-  done < <(running_projects)
+  done < <(projects_started_from_stacks)
 }
 
 containers() {
