@@ -134,7 +134,7 @@ has_containers() {
 }
 
 planned_changes() {
-  compose "$1" up -d --dry-run --no-build --pull never --remove-orphans 2>&1
+  compose "$1" up -d --dry-run --no-build --remove-orphans 2>&1
 }
 
 plan_changes_something() {

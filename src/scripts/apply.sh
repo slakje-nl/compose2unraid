@@ -55,22 +55,9 @@ recreate_stack() {
 }
 
 apply_stack() {
-  local stack="$1" drift detail
-  read -r drift detail < <(stack_drift "$stack")
-  case "$drift" in
-    new|changed)
-      printf 'Applying %s\n' "$stack"
-      compose "$stack" up -d --remove-orphans
-      ;;
-    broken)
-      printf 'Compose cannot read %s: %s\n' "$stack" "$detail"
-      return 1
-      ;;
-    *)
-      printf '%s is in sync, nothing to do\n' "$stack"
-      return 0
-      ;;
-  esac
+  local stack="$1"
+  printf 'Applying %s\n' "$stack"
+  compose "$stack" up -d --remove-orphans
   log info "applied $stack"
 }
 
