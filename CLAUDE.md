@@ -19,11 +19,13 @@ This file is the rulebook and the command reference.
 
 ## Toolchain
 
-- **bash** for the logic, **jq** to build JSON, **PHP** (whatever Unraid ships) for rendering
+- **bash** for the logic, **jq** to build JSON, **PHP** (8.3, what Unraid 7.2.3 and newer ship)
+  for rendering
   the page, and nothing else at runtime. No Node, no Composer, no framework, no database, no
   build step beyond assembling one XML file.
 - **just** is the task runner. Every gate and dev command has a recipe; see `just --list`.
-- Linters and tests run in **Docker**: `koalaman/shellcheck`, `php:cli`, `bats/bats` (with git and
+- Linters and tests run in **Docker**: `koalaman/shellcheck`, `php:8.3-cli` (the PHP major
+  Unraid 7.2 ships, so lint cannot accept what the box rejects), `bats/bats` (with git and
   jq added in `tests/Dockerfile`), `zricethezav/gitleaks`. Nothing needs installing locally beyond
   `just` and Docker, and CI runs the identical containers.
 - On the box the plugin depends on `docker compose`. The `.plg` downloads the static release once,
@@ -85,7 +87,7 @@ The approved set:
 | | |
 |---|---|
 | Runtime | bash, `jq` and PHP as shipped by Unraid, `docker compose` (static release) |
-| Dev containers | `koalaman/shellcheck`, `php:cli`, `bats/bats`, `zricethezav/gitleaks` |
+| Dev containers | `koalaman/shellcheck`, `php:8.3-cli` (the PHP Unraid 7.2 ships), `bats/bats`, `zricethezav/gitleaks` |
 | Toolchain | `just`, Docker |
 | CI | `actions/checkout`, `actions/setup-node`, `jdx/mise-action`, `softprops/action-gh-release`, `@commitlint/cli`, `@commitlint/config-conventional` |
 

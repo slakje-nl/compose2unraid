@@ -13,7 +13,7 @@
 <!ENTITY composeTarget "/usr/local/lib/docker/cli-plugins/docker-compose">
 ]>
 
-<PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" support="&support;" min="6.12.0" icon="cubes">
+<PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" support="&support;" min="7.2.3" icon="cubes">
 
 <CHANGES>
 ##&name;
