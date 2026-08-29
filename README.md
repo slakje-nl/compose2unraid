@@ -148,8 +148,8 @@ Uninstalling leaves your containers running and the base path untouched.
 
 ## Requirements
 
-Unraid 7.2.3 or newer on x86_64. `git` is not needed. The flash drive is unencrypted, so anything in `.env`
-is readable by whoever holds the drive; that is true of every Unraid plugin's secrets.
+Unraid 7.2.3 or newer on x86_64. `git` is not needed. The flash drive is unencrypted, so anything in
+`.env` is readable by whoever holds the drive; that is true of every Unraid plugin's secrets.
 
 ## Development
 
