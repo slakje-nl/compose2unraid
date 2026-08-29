@@ -14,6 +14,7 @@ teardown() {
 
   [ "$status" -eq 0 ]
   grep -q '<!ENTITY version "2026.01.02">' "$PLG_OUT"
+  grep -q ' min="7.2.3" ' "$PLG_OUT"
   grep -q '<FILE Name="/usr/local/emhttp/plugins/compose2unraid/scripts/common.sh" Mode="0755">' "$PLG_OUT"
   grep -q '<FILE Name="/usr/local/emhttp/plugins/compose2unraid/default.cfg" Mode="0644">' "$PLG_OUT"
   grep -q '<INLINE><!\[CDATA\[#!/bin/bash' "$PLG_OUT"

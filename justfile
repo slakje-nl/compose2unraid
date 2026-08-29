@@ -1,7 +1,7 @@
 set shell := ["bash", "-uc"]
 
 shellcheck := "docker run --rm -v \"$PWD:/mnt\" -w /mnt koalaman/shellcheck:stable"
-php := "docker run --rm -v \"$PWD:/mnt\" -w /mnt php:cli-alpine php"
+php := "docker run --rm -v \"$PWD:/mnt\" -w /mnt php:8.3-cli-alpine php"
 gitleaks := "docker run --rm -v \"$PWD:/mnt\" -w /mnt zricethezav/gitleaks"
 tests := "compose2unraid-tests"
 
@@ -25,11 +25,11 @@ test-render:
       -v "$PWD/tests/render/Wrappers.php:/usr/local/emhttp/plugins/dynamix/include/Wrappers.php:ro" \
       -v "$PWD/tests/render/update-status.json:/var/lib/docker/unraid-update-status.json:ro" \
       -v "$PWD/tests/render/render.php:/render.php:ro" \
-      php:cli-alpine php /render.php
+      php:8.3-cli-alpine php /render.php
 
 build version="":
     tools/build-plg.sh {{ version }}
-    docker run --rm -i php:cli-alpine php -r 'exit(simplexml_load_string(stream_get_contents(STDIN), "SimpleXMLElement", LIBXML_NOENT)["name"] == "compose2unraid" ? 0 : 1);' < dist/compose2unraid.plg
+    docker run --rm -i php:8.3-cli-alpine php -r 'exit(simplexml_load_string(stream_get_contents(STDIN), "SimpleXMLElement", LIBXML_NOENT)["name"] == "compose2unraid" ? 0 : 1);' < dist/compose2unraid.plg
 
 commits:
     git log --format='%s' main..HEAD | awk 'length > 72 { print "subject over 72 characters: " $0; bad = 1 } END { exit bad }'
