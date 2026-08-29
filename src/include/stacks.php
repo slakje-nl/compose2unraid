@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/common.php';
 
-$withStats = ($_GET['stats'] ?? '1') !== '0';
-$status = compose2unraid_status($withStats);
+$withDrift = ($_GET['drift'] ?? '1') !== '0';
+$status = compose2unraid_status($withDrift);
 $byStack = compose2unraid_containers_by_stack($status['containers']);
 $stats = compose2unraid_stats_by_id($status['stats'], (int) ($status['cpus'] ?? 1));
 $updateStatus = compose2unraid_update_status();
@@ -58,6 +58,9 @@ $columns .= '</colgroup>';
             <span class="c2u-note red-text" title="<?= $h($hint) ?>">
               <i class="fa fa-exclamation-triangle"></i> <?= $h($label) ?>
             </span>
+          <?php endif ?>
+          <?php if ($entry['drift'] === 'unknown' && $rows === []): ?>
+            <span class="c2u-note"><?= compose2unraid_not_checked() ?></span>
           <?php endif ?>
           <?php if ($rows === []): ?>
             <span class="c2u-note">
@@ -118,15 +121,11 @@ $columns .= '</colgroup>';
         <td class="c2u-meter">
           <?php if ($usage !== null): ?>
             <?= compose2unraid_meter($usage['cpu'], $usage['cpu_percent']) ?>
-          <?php elseif (!$withStats && $state === 'running'): ?>
-            <span class="grey-text">loading...</span>
           <?php endif ?>
         </td>
         <td class="c2u-meter">
           <?php if ($usage !== null): ?>
             <?= compose2unraid_meter($usage['memory'], $usage['memory_percent']) ?>
-          <?php elseif (!$withStats && $state === 'running'): ?>
-            <span class="grey-text">loading...</span>
           <?php endif ?>
         </td>
         <td>

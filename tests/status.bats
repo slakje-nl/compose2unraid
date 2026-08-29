@@ -77,21 +77,55 @@ teardown() {
   [ "$(printf '%s' "$output" | jq -c '[.stacks[] | [.name, .drift]]')" = '[["alpha","insync"],["beta","insync"]]' ]
 }
 
-@test "status can skip the stats sample for a quick first page" {
-  make_stack alpha
-  add_running alpha
-
-  run "$SCRIPTS/status.sh" --without-stats
-
-  [ "$status" -eq 0 ]
-  [ "$(printf '%s' "$output" | jq -c '.stats')" = '[]' ]
-  [ "$(printf '%s' "$output" | jq -r '.containers | length')" = "1" ]
-  ! docker_calls | grep -q '^stats'
+@test "a refresh without drift shows what the last check found and runs no compose at all" {
+  make_stack same
+  add_running same
+  make_stack edited
+  add_running edited app oldhash
 
   run status_json
+  [ "$status" -eq 0 ]
+  docker_calls | grep -q '^compose'
+  : > "$FAKE_DOCKER_LOG"
+
+  run "$SCRIPTS/status.sh" --without-drift
 
   [ "$status" -eq 0 ]
+  ! docker_calls | grep -q '^compose'
   docker_calls | grep -q '^stats --no-stream'
+  [ "$(printf '%s' "$output" | jq -c '[.stacks[] | [.name, .drift, (.defined | length)]]')" = '[["edited","changed",1],["same","insync",1]]' ]
+}
+
+@test "a stack synced since the last check says so until the next one" {
+  make_stack alpha
+  run status_json
+  [ "$status" -eq 0 ]
+  make_stack beta
+
+  run "$SCRIPTS/status.sh" --without-drift
+  [ "$status" -eq 0 ]
+  [ "$(printf '%s' "$output" | jq -c '[.stacks[] | [.name, .drift, .defined]]')" = '[["alpha","new",[{"service":"app","name":"alpha-app-1","icon":""}]],["beta","unknown",[]]]' ]
+
+  run status_json
+  [ "$status" -eq 0 ]
+  [ "$(printf '%s' "$output" | jq -c '[.stacks[] | [.name, .drift]]')" = '[["alpha","new"],["beta","new"]]' ]
+}
+
+@test "a stack removed from disk is forgotten by the next check" {
+  make_stack alpha
+  make_stack beta
+  run status_json
+  [ "$status" -eq 0 ]
+  [ -f "$COMPOSE2UNRAID_CACHE_DIR/beta.json" ]
+  rm -r "$STACKS/beta"
+
+  run "$SCRIPTS/status.sh" --without-drift
+  [ "$status" -eq 0 ]
+  [ "$(printf '%s' "$output" | jq -c '[.stacks[].name]')" = '["alpha"]' ]
+
+  run status_json
+  [ "$status" -eq 0 ]
+  [ ! -f "$COMPOSE2UNRAID_CACHE_DIR/beta.json" ]
 }
 
 @test "status lists the services on disk with their container name and icon" {
@@ -100,7 +134,7 @@ teardown() {
     >> "$STACKS/alpha/compose.yaml"
   printf '  db:\n    image: example/db:1\n' >> "$STACKS/alpha/compose.yaml"
 
-  run "$SCRIPTS/status.sh" --without-stats
+  run status_json
 
   [ "$status" -eq 0 ]
   [ "$(printf '%s' "$output" | jq -c '.stacks[0].defined')" = '[{"service":"app","name":"my-app","icon":"https://example.com/a.png"},{"service":"db","name":"alpha-db-1","icon":""}]' ]
@@ -138,7 +172,7 @@ teardown() {
   add_running slow
   export FAKE_DOCKER_HANG_STACKS=slow COMPOSE_TIMEOUT_SECONDS=1
 
-  run "$SCRIPTS/status.sh" --without-stats
+  run status_json
 
   [ "$status" -eq 0 ]
   [ "$(printf '%s' "$output" | jq -c '.stacks[0] | [.drift, .error]')" = '["broken","compose did not answer within 1s"]' ]

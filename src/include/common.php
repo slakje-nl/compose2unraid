@@ -64,9 +64,9 @@ function compose2unraid_empty_status(string $error): array
     ];
 }
 
-function compose2unraid_status(bool $withStats): array
+function compose2unraid_status(bool $withDrift): array
 {
-    $arguments = $withStats ? [] : ['--without-stats'];
+    $arguments = $withDrift ? [] : ['--without-drift'];
     [$exitCode, $output, $errors] = compose2unraid_run_script('status.sh', ...$arguments);
     if ($exitCode !== 0) {
         return compose2unraid_empty_status(trim($errors . "\n" . $output));
@@ -193,6 +193,12 @@ function compose2unraid_problem(array $entry, string $basePath): array
     return ['compose error', (string) $entry['error']];
 }
 
+function compose2unraid_not_checked(): string
+{
+    return compose2unraid_badge('grey', 'question-circle', 'not checked',
+        'This stack appeared after the last check. Click Refresh stacks.');
+}
+
 function compose2unraid_stack_line(array $entry, array $row, string $basePath): string
 {
     if ($entry['drift'] === 'gone') {
@@ -208,6 +214,9 @@ function compose2unraid_stack_line(array $entry, array $row, string $basePath): 
     }
     if ($row['defined'] === false) {
         return compose2unraid_badge('orange', 'bolt', 'removed on disk');
+    }
+    if ($entry['drift'] === 'unknown') {
+        return compose2unraid_not_checked();
     }
     if ($entry['drift'] === 'changed') {
         return compose2unraid_badge('orange', 'bolt', 'changed');

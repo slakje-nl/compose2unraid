@@ -3,7 +3,7 @@ set -euo pipefail
 source "${BASH_SOURCE[0]%/*}/common.sh"
 
 WORK=""
-WITH_STATS=1
+WITH_DRIFT=1
 COMPOSE_TIMEOUT_SECONDS="${COMPOSE_TIMEOUT_SECONDS:-60}"
 
 stack_entry() {
@@ -30,7 +30,7 @@ config_problem() {
   fi
 }
 
-on_disk_entry() {
+checked_entry() {
   local stack="$1" drift detail config errors="$WORK/config-errors-$1"
   if ! config="$(compose "$stack" config --format json 2> "$errors")"; then
     stack_entry "$stack" broken "$(config_problem "$errors")"
@@ -39,6 +39,33 @@ on_disk_entry() {
 
   read -r drift detail < <(stack_drift "$stack")
   stack_entry "$stack" "$drift" "${detail:-}" "$(defined_services "$stack" <<< "$config")"
+}
+
+remember_entry() {
+  local stack="$1" fresh
+  checked_entry "$stack" > "$WORK/stack-$stack"
+  fresh="$(mktemp "$CACHE_DIR/$stack.XXXXXX")"
+  cp "$WORK/stack-$stack" "$fresh"
+  mv "$fresh" "$CACHE_DIR/$stack.json"
+}
+
+remembered_entry() {
+  local stack="$1"
+  if [[ -f "$CACHE_DIR/$stack.json" ]]; then
+    cat "$CACHE_DIR/$stack.json"
+  else
+    stack_entry "$stack" unknown
+  fi
+}
+
+forget_stacks_not_on_disk() {
+  local file name
+  for file in "$CACHE_DIR"/*.json; do
+    [[ -f "$file" ]] || continue
+    name="${file##*/}"
+    name="${name%.json}"
+    [[ " $* " == *" $name "* ]] || rm -f "$file"
+  done
 }
 
 gone_entries() {
@@ -116,14 +143,14 @@ collect_in_parallel() {
   local -a pids
   local stack pid
   containers > "$WORK/containers" & pids+=($!)
-  if (( WITH_STATS )); then
-    sample_stats & pids+=($!)
-  else
-    : > "$WORK/stats"
-  fi
+  sample_stats & pids+=($!)
   gone_entries "$@" > "$WORK/gone" & pids+=($!)
   for stack in "$@"; do
-    on_disk_entry "$stack" > "$WORK/stack-$stack" & pids+=($!)
+    if (( WITH_DRIFT )); then
+      remember_entry "$stack" & pids+=($!)
+    else
+      remembered_entry "$stack" > "$WORK/stack-$stack" & pids+=($!)
+    fi
   done
   for pid in "${pids[@]}"; do
     wait "$pid"
@@ -132,13 +159,16 @@ collect_in_parallel() {
 
 main() {
   load_config
-  if [[ "${1:-}" == --without-stats ]]; then
-    WITH_STATS=0
+  if [[ "${1:-}" == --without-drift ]]; then
+    WITH_DRIFT=0
   fi
   local -a names
   mapfile -t names < <(stacks)
   WORK="$(mktemp -d)"
   trap 'rm -rf "$WORK"' EXIT
+  if (( WITH_DRIFT )); then
+    forget_stacks_not_on_disk "${names[@]}"
+  fi
   collect_in_parallel "${names[@]}"
   jq -cn --slurpfile stacks <(collected_entries "${names[@]}") \
     --slurpfile containers "$WORK/containers" --slurpfile stats "$WORK/stats" \

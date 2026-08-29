@@ -7,6 +7,7 @@ setup_sandbox() {
   export COMPOSE2UNRAID_FLASH_DIR="$SANDBOX/flash"
   export COMPOSE2UNRAID_LOG_DIR="$SANDBOX/log"
   export COMPOSE2UNRAID_LOCK_FILE="$SANDBOX/lock"
+  export COMPOSE2UNRAID_CACHE_DIR="$SANDBOX/cache"
   export FAKE_DOCKER_LOG="$SANDBOX/docker.log"
   export FAKE_DOCKER_CONTAINERS="$SANDBOX/containers"
   export PATH="$BATS_TEST_DIRNAME/fakes:$PATH"

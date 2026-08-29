@@ -1,15 +1,18 @@
 #!/bin/sh
-if [ "${1:-}" = --without-stats ]; then
-  stats='[]'
+if [ "${1:-}" = --without-drift ]; then
+  gamma='{"name":"gamma","drift":"unknown","error":null,"defined":[]}'
+  delta='unknown'
 else
-  stats='[{"ID":"aaaaaaaaaaaa","CPUPerc":"1.50%","MemUsage":"31.2MiB / 125.7GiB","MemPerc":"0.02%"}]'
+  gamma='{"name":"gamma","drift":"new","error":null,"defined":[{"service":"web","name":"gamma-web-1","icon":"https://example.com/web.png"},{"service":"cache","name":"my-cache","icon":""}]}'
+  delta='insync'
 fi
-sed "s#STATS#$stats#" <<'JSON'
+stats='[{"ID":"aaaaaaaaaaaa","CPUPerc":"1.50%","MemUsage":"31.2MiB / 125.7GiB","MemPerc":"0.02%"}]'
+sed "s#STATS#$stats#; s#GAMMA#$gamma#; s#DELTA#$delta#" <<'JSON'
 {"stacks":[
   {"name":"alpha","drift":"changed","error":null,"defined":[{"service":"app","name":"alpha-app-1","icon":""},{"service":"db","name":"alpha-db-1","icon":""}]},
   {"name":"beta","drift":"changed","error":null,"defined":[{"service":"app","name":"beta-app-1","icon":""}]},
-  {"name":"gamma","drift":"new","error":null,"defined":[{"service":"web","name":"gamma-web-1","icon":"https://example.com/web.png"},{"service":"cache","name":"my-cache","icon":""}]},
-  {"name":"delta","drift":"insync","error":null,"defined":[{"service":"app","name":"delta-app-1","icon":""}]},
+  GAMMA,
+  {"name":"delta","drift":"DELTA","error":null,"defined":[{"service":"app","name":"delta-app-1","icon":""}]},
   {"name":"gone","drift":"gone","error":null,"defined":[]},
   {"name":"torn","drift":"broken","error":"yaml: line 3: did not find expected key","defined":[]},
   {"name":"noenv","drift":"broken","error":"missing .env","defined":[]}
