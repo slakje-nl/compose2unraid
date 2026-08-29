@@ -22,7 +22,8 @@ configured_base_path() {
   if [[ -f "$CFG_FILE" ]]; then
     files+=("$CFG_FILE")
   fi
-  sed -n 's/^BASE_PATH="\(.*\)"$/\1/p' "${files[@]}" | tail -1
+  sed -nE 's/^[[:space:]]*BASE_PATH[[:space:]]*=[[:space:]]*(.*[^[:space:]])[[:space:]]*$/\1/p' \
+    "${files[@]}" | tail -1 | sed -E "s/^\"(.*)\"$/\\1/; s/^'(.*)'$/\\1/"
 }
 
 validate_base_path() {

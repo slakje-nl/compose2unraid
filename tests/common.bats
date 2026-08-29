@@ -16,13 +16,13 @@ teardown() {
   [ "$output" = "$BASE/stacks" ]
 }
 
-@test "config ignores an unquoted BASE_PATH and keeps the default" {
-  printf 'BASE_PATH=%s\n' "$BASE" > "$COMPOSE2UNRAID_FLASH_DIR/compose2unraid.cfg"
-
-  run bash -c "source '$SCRIPTS/common.sh'; load_config; printf '%s\n' \"\$STACKS_DIR\""
-
-  [ "$status" -eq 0 ]
-  [ "$output" = "/mnt/user/appdata/compose2unraid/stacks" ]
+@test "config reads BASE_PATH the way parse_plugin_cfg does: quoted, single-quoted or bare" {
+  for line in "BASE_PATH=$BASE" "BASE_PATH='$BASE'" "BASE_PATH = \"$BASE\"  " "BASE_PATH=$BASE   "; do
+    printf '%s\n' "$line" > "$COMPOSE2UNRAID_FLASH_DIR/compose2unraid.cfg"
+    run bash -c "source '$SCRIPTS/common.sh'; load_config; printf '%s\n' \"\$STACKS_DIR\""
+    [ "$status" -eq 0 ]
+    [ "$output" = "$BASE/stacks" ]
+  done
 }
 
 @test "config creates the stacks directory so the first sync has somewhere to land" {

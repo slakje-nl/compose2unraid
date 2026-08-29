@@ -47,11 +47,8 @@ mkdir -p "$(dirname &composeTarget;)"
 install -m 0755 "&flashdir;/bin/docker-compose-&composeVersion;" &composeTarget;
 find "&flashdir;/bin" -name 'docker-compose-*' ! -name "docker-compose-&composeVersion;" -delete
 
-cfgs="&plugdir;/default.cfg"
-if [[ -f "&flashdir;/&name;.cfg" ]]; then
-  cfgs="$cfgs &flashdir;/&name;.cfg"
-fi
-base="$(sed -n 's/^BASE_PATH="\(.*\)"$/\1/p' $cfgs | tail -1)"
+source "&plugdir;/scripts/common.sh"
+base="$(configured_base_path)"
 mount="/$(printf '%s' "$base" | cut -d/ -f2,3)"
 if mountpoint -q "$mount"; then
   mkdir -p "$base/stacks"

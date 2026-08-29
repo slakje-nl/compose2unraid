@@ -162,8 +162,10 @@ These are written in the README and every change must keep them true.
   which is how the badge clears right after an update.
 - **Config is an Unraid `.cfg`** with one key, `BASE_PATH`, at
   `/boot/config/plugins/compose2unraid/compose2unraid.cfg`, read with `parse_plugin_cfg` in PHP and
-  by one `sed` in bash. The default comes from `default.cfg`, the single place a
-  default is written. There is no settings page.
+  by `configured_base_path` in bash, which accepts the same shapes (double-quoted,
+  single-quoted or bare, spaces around `=`), so both sides always agree; the `.plg` install step
+  sources `common.sh` for the same reader. The default comes from `default.cfg`, the single
+  place a default is written. There is no settings page.
 - **Compose is always invoked the same way**: `docker compose --project-directory <stack dir>
   -p <stack name> ...`, through one `compose()` function in `common.sh`. The project name is the
   directory name, always.
