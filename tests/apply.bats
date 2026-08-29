@@ -197,6 +197,13 @@ teardown() {
   [[ "$output" == *"Sync stack would change edited. The plan:"* ]]
   [[ "$output" == *"Container edited-app-1 Recreate"* ]]
   ! docker_calls | grep -v -- '--dry-run' | grep -q -- 'up -d'
+  [ "$(docker_calls | grep -c -- '--dry-run')" = "2" ]
+
+  make_stack fresh
+  run "$SCRIPTS/apply.sh" fresh --diff
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Nothing of fresh is running yet. Sync stack would create:"* ]]
+  [[ "$output" == *"Container fresh-app-1 Creating"* ]]
 }
 
 @test "recreate brings every container of the stack up again from its image" {

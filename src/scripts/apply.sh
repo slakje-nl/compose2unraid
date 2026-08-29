@@ -34,17 +34,28 @@ tidy_images() {
   done
 }
 
+planned_lines() {
+  sed -E 's/^.*DRY-RUN MODE - *//; /^ *(Container|Network|Volume) /!d' <<< "$1"
+}
+
 show_diff() {
-  local stack="$1" drift detail plan
-  read -r drift detail < <(stack_drift "$stack")
-  case "$drift" in
-    new) printf 'Nothing of %s is running yet. Sync stack would create:\n' "$stack" ;;
-    changed) printf 'Sync stack would change %s. The plan:\n' "$stack" ;;
-    broken) printf 'Compose cannot read %s: %s\n' "$stack" "$detail"; return 1 ;;
-    *) printf '%s is in sync, sync stack would change nothing\n' "$stack"; return 0 ;;
-  esac
-  plan="$(planned_changes "$stack")"
-  sed -E 's/^.*DRY-RUN MODE - *//; /^ *(Container|Network|Volume) /!d' <<< "$plan"
+  local stack="$1" status=0 plan
+  plan="$(planned_changes "$stack")" || status=$?
+  if (( status != 0 )); then
+    printf 'Compose cannot read %s: %s\n' "$stack" "$(tail -1 <<< "$plan")"
+    return 1
+  fi
+  if ! plan_changes_something "$plan"; then
+    printf '%s is in sync, sync stack would change nothing\n' "$stack"
+    return 0
+  fi
+
+  if has_containers "$stack"; then
+    printf 'Sync stack would change %s. The plan:\n' "$stack"
+  else
+    printf 'Nothing of %s is running yet. Sync stack would create:\n' "$stack"
+  fi
+  planned_lines "$plan"
 }
 
 recreate_stack() {
