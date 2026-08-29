@@ -204,6 +204,7 @@ expect($check, 'c2uLine("example\/delta:2: ")</script>' . "\n" . '<script>c2uLin
 refuse($check, '#example\\\\/gone#', 'a stack without files is not checked');
 expect($check, '<p class="done orange-text">1 of 5 images has a newer version. 3 could not be checked.</p>', 'the summary counts newer and unchecked images');
 expect($check, 'onclick="parent.Shadowbox.close()"', 'the check closes Unraid\'s dialog');
+expect($check, '</div>' . "\n" . '<script>parent.c2uRefresh(false)</script>', 'the table behind refreshes as soon as the check is done');
 if (compose2unraid_check_summary(1, 1, 0) !== '1 of 1 image has a newer version.') {
     $failures[] = 'the summary reads well for one image';
 }

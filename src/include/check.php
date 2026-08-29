@@ -102,5 +102,6 @@ $colour = $newer > 0 ? 'orange-text' : 'green-text';
 ?>
 <p class="done <?= $colour ?>"><?= compose2unraid_h($summary) ?></p>
 <div class="actions"><input type="button" value="Done" onclick="parent.Shadowbox.close()"></div>
+<script>parent.c2uRefresh(false)</script>
 </body>
 </html>
