@@ -35,7 +35,7 @@ function render(string $file): string
     return ob_get_clean();
 }
 
-$page = render('/usr/local/emhttp/plugins/compose2unraid/Compose2Unraid.page');
+$page = render('/usr/local/emhttp/plugins/compose2unraid/Compose.page');
 expect($page, 'id="c2u-content"', 'the page has the div the fragment replaces');
 expect($page, 'Reading the stacks', 'the page shows a placeholder until the first fetch');
 refuse($page, '/<table class="tablesorter c2u-stack"/', 'the page does not run status.sh itself');

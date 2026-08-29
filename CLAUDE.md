@@ -4,11 +4,11 @@ Guidance for Claude Code when working in this repository.
 
 compose2unraid is a small Unraid plugin for people who keep their Docker Compose stacks in a git
 repository and deploy from a terminal. It brings the stacks on disk up when Docker starts, and it
-shows them under the Docker menu: containers, health, versions, resource use, whether what runs
-still matches the files on disk, and whether Unraid found a newer image. The icon menu on each
+shows them on a Compose tab next to Docker: containers, health, versions, resource use, whether what
+runs still matches the files on disk, and whether Unraid found a newer image. The icon menu on each
 row does a little work: sync a stack whose files changed, recreate it, update the images Unraid
-flagged, and start, stop or restart a service. Each is one `docker compose` command. Everything
-else is read-only, and the plugin knows nothing about git.
+flagged, and start, stop or restart a service. Each is one `docker compose` command. Everything else
+is read-only, and the plugin knows nothing about git.
 
 Repository: `git@github.com:slakje-nl/compose2unraid.git`
 Install URL: `https://github.com/slakje-nl/compose2unraid/releases/latest/download/compose2unraid.plg`
@@ -217,7 +217,7 @@ Repository layout:
 
 ```
 src/
-  Compose2Unraid.page            the page under the Docker menu, the run and commands dialogs
+  Compose.page                   the Compose tab (Menu="Tasks:65", between Docker and VMs)
   include/common.php             helpers: run status.sh, read Unraid's update status, format
   include/stacks.php             the table, included by the page and fetched for refreshes
   include/run.php                checks the csrf token, runs apply.sh and streams its output
