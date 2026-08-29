@@ -98,7 +98,8 @@ These are written in the README and every change must keep them true.
   flagged, or a pull in a terminal. The boot hook uses `--no-recreate`, apply never pulls, and
   "update ready" comes from Unraid's own Check for Updates status file, never from a request the
   plugin made.
-- **Boot never depends on the network.** The `docker_started` hook brings up whatever is on disk.
+- **Boot never depends on the network.** The `docker_started` hook brings up whatever is on disk,
+  detached from the event (`setsid ... &`), so emhttp's Docker start never waits for a stack.
 - **Nothing changes without a click.** Refreshing the page runs `status.sh`, which only reads.
   The one endpoint that changes anything, `run.php`, accepts POST only, runs `apply.sh` with a
   validated stack name and service names, and streams its output into the dialog the click
@@ -189,7 +190,7 @@ src/
   scripts/status.sh              the JSON the page renders
   scripts/apply.sh               apply a stack, or pull and recreate named services
   scripts/hook.sh                brings every stack up when Docker starts
-  event/docker_started           thin wrapper calling scripts/hook.sh
+  event/docker_started           starts scripts/hook.sh detached from the event
   default.cfg                    BASE_PATH
 plg/compose2unraid.plg.in        the .plg template: header, install, remove; files are inlined
 tools/build-plg.sh               assembles dist/compose2unraid.plg from src/ and the template

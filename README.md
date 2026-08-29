@@ -102,8 +102,9 @@ Closing a dialog stops the command and refreshes the table.
 ### Boot
 
 When Docker starts, the plugin waits for the daemon and runs `docker compose up -d --no-recreate`
-for every stack on disk, one after the other. A stack that fails is logged to syslog and the
-next one still starts. Nothing is pulled, nothing is recreated, nothing depends on the network.
+for every stack on disk, one after the other, in the background: Docker's own start does not wait
+for the stacks, and a stack that takes long to come up holds up nothing but the stacks after it.
+A stack that fails is logged to syslog and the next one still starts. Nothing is pulled, nothing is recreated, nothing depends on the network.
 Put `restart: always` in your services so the daemon itself restarts them when it restarts.
 
 ### Promises
