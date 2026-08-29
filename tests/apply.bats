@@ -32,7 +32,7 @@ teardown() {
 
   run "$SCRIPTS/apply.sh" edited
   [ "$status" -eq 0 ]
-  [[ "$output" == *"Applying edited (app)"* ]]
+  [[ "$output" == *"Applying edited"* ]]
   docker_calls | grep -q -- '-p edited up -d --remove-orphans'
 }
 
@@ -205,7 +205,7 @@ teardown() {
 
   run "$SCRIPTS/apply.sh" edited --diff
   [ "$status" -eq 0 ]
-  [[ "$output" == *"Sync stack would change app in edited"* ]]
+  [[ "$output" == *"Sync stack would change edited. The plan:"* ]]
   [[ "$output" == *"Container edited-app-1 Recreate"* ]]
   ! docker_calls | grep -v -- '--dry-run' | grep -q -- 'up -d'
 }

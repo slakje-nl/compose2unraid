@@ -33,7 +33,7 @@ teardown() {
   run status_json
 
   [ "$status" -eq 0 ]
-  [ "$(printf '%s' "$output" | jq -c '[.stacks[] | [.name, .drift, .services, .error]]')" = '[["broken","broken",[],"compose config failed for broken"],["edited","changed",["app"],null],["gone","gone",[],null],["same","insync",[],null]]' ]
+  [ "$(printf '%s' "$output" | jq -c '[.stacks[] | [.name, .drift, .error]]')" = '[["broken","broken","compose config failed for broken"],["edited","changed",null],["gone","gone",null],["same","insync",null]]' ]
   [ "$(printf '%s' "$output" | jq -r '.containers | length')" = "4" ]
   [ "$(printf '%s' "$output" | jq -r '.containers[0].stack')" = "same" ]
   [ "$(printf '%s' "$output" | jq -c '.containers[0].digests')" = '["sha256:same-1"]' ]

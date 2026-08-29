@@ -134,39 +134,12 @@ planned_changes() {
   compose "$1" up -d --dry-run --no-build --pull never --remove-orphans 2>&1
 }
 
-container_services() {
-  docker ps -a --filter "label=$COMPOSE_PROJECT_LABEL=$1" \
-    --format "{{.Names}} {{.Label \"$COMPOSE_SERVICE_LABEL\"}}"
-}
-
-defined_container_services() {
-  compose "$1" config --format json 2>> "$LOG_FILE" | jq -r --arg stack "$1" \
-    '(.services // {}) | to_entries[]
-      | "\(.value.container_name // ($stack + "-" + .key + "-1")) \(.key)"'
-}
-
-planned_container_names() {
-  awk '$1 == "Container" && $3 ~ /^(Recreate|Creating|Removing)$/ { print $2 }' <<< "$1" |
-    sort -u
-}
-
-changed_services() {
-  local stack="$1" plan="$2"
-  local -a names
-  mapfile -t names < <(planned_container_names "$plan")
-  (( ${#names[@]} > 0 )) || return 0
-
-  { container_services "$stack"; defined_container_services "$stack"; } |
-    awk -v names="${names[*]}" '
-      !($1 in service) { service[$1] = $2 }
-      END {
-        count = split(names, list, " ")
-        for (i = 1; i <= count; i++) print (list[i] in service ? service[list[i]] : list[i])
-      }' | sort -u | tr '\n' ' ' | sed 's/ $//'
+plan_changes_something() {
+  grep -Eq '(^| )(Container|Network|Volume) [^ ]+ +(Recreate|Creating|Removing)( |$)' <<< "$1"
 }
 
 stack_drift() {
-  local stack="$1" plan changed
+  local stack="$1" plan
   if ! has_containers "$stack"; then
     printf 'new\n'
     return 0
@@ -183,9 +156,8 @@ stack_drift() {
     return 0
   fi
 
-  changed="$(changed_services "$stack" "$plan")"
-  if [[ -n "$changed" ]]; then
-    printf 'changed %s\n' "$changed"
+  if plan_changes_something "$plan"; then
+    printf 'changed\n'
     return 0
   fi
 
