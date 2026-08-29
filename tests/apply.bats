@@ -77,7 +77,7 @@ teardown() {
   [ "$(docker_calls | grep -c -- ' up -d')" = "1" ]
 }
 
-@test "update pulls and recreates only the named services and removes the images it replaced" {
+@test "update pulls and recreates only the named services, not what they depend on, and removes the images it replaced" {
   make_stack alpha
   printf '  db:\n    image: example/db:1\n' >> "$STACKS/alpha/compose.yaml"
   add_running alpha app "$(stack_hash alpha)" 2021-01-01T00:00:00Z example/alpha:1 sha256:a1
@@ -90,7 +90,7 @@ teardown() {
 
   [ "$status" -eq 0 ]
   docker_calls | grep -q -- '-p alpha pull app$'
-  docker_calls | grep -q -- '-p alpha up -d app$'
+  docker_calls | grep -q -- '-p alpha up -d --no-deps app$'
   ! docker_calls | grep -q 'pull db\|up -d db'
   [ "$(docker_calls | grep -c '^image rm')" = "1" ]
   docker_calls | grep -q '^image rm sha256:a1$'
@@ -156,7 +156,7 @@ teardown() {
   [ "$status" -eq 0 ]
   [[ "$output" == *"Restarting app"* ]]
   [[ "$output" == *"Done."* ]]
-  docker_calls | grep -q -- '-p alpha restart app$'
+  docker_calls | grep -q -- '-p alpha restart --no-deps app$'
 
   run "$SCRIPTS/apply.sh" alpha --stop app db
   [ "$status" -eq 0 ]

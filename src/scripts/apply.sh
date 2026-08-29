@@ -82,7 +82,7 @@ update_services() {
   printf 'Pulling %s\n' "$*"
   compose "$stack" pull "$@"
   printf 'Recreating %s\n' "$*"
-  compose "$stack" up -d "$@"
+  compose "$stack" up -d --no-deps "$@"
   if (( ${#old_images[@]} > 0 )); then
     tidy_images "${old_images[@]}"
   fi
@@ -99,8 +99,12 @@ gerund() {
 run_on_services() {
   local verb="$1" stack="$2"
   shift 2
+  local -a flags=()
+  if [[ "$verb" == restart && $# -gt 0 ]]; then
+    flags=(--no-deps)
+  fi
   printf '%s %s\n' "$(gerund "$verb")" "${*:-the whole stack}"
-  compose "$stack" "$verb" "$@"
+  compose "$stack" "$verb" "${flags[@]}" "$@"
   log info "$verb $stack: ${*:-all}"
 }
 

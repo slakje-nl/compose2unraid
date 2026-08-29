@@ -83,7 +83,7 @@ Under **Container**, while the stack runs:
 - **Logs**: Unraid's own log window, following the container's log.
 - **Update and restart** (or **and start**), only when Unraid flagged the image: pulls that
   service's image, recreates the container and removes the image it replaced if nothing else
-  uses it.
+  uses it. Nothing else in the stack is touched, not even a service it depends on.
 
 Under **Stack**:
 
