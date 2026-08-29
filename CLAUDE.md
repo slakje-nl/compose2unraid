@@ -165,7 +165,9 @@ These are written in the README and every change must keep them true.
   by `configured_base_path` in bash, which accepts the same shapes (double-quoted,
   single-quoted or bare, spaces around `=`), so both sides always agree; the `.plg` install step
   sources `common.sh` for the same reader. The default comes from `default.cfg`, the single
-  place a default is written. There is no settings page.
+  place a default is written. There is no settings page. `load_config` creates the log
+  directory and nothing else: the stacks directory is created by the install step and the hook,
+  never by a read, so `status.sh` and `--diff` leave the array alone.
 - **Compose is always invoked the same way**: `docker compose --project-directory <stack dir>
   -p <stack name> ...`, through one `compose()` function in `common.sh`. The project name is the
   directory name, always.

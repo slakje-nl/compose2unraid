@@ -34,10 +34,13 @@ teardown() {
   plugin_log | grep -q '1 stack(s) did not come up'
 }
 
-@test "the hook does nothing when there are no stacks on disk" {
+@test "the hook creates the stacks directory and does nothing while it is empty" {
+  rm -r "$STACKS"
+
   run "$SCRIPTS/hook.sh"
 
   [ "$status" -eq 0 ]
+  [ -d "$STACKS" ]
   [ ! -s "$FAKE_DOCKER_LOG" ]
   plugin_log | grep -q 'nothing to bring up'
 }

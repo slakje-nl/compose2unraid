@@ -17,6 +17,7 @@ bring_up() {
 
 main() {
   load_config
+  mkdir -p "$STACKS_DIR"
   local -a names
   mapfile -t names < <(stacks)
   if (( ${#names[@]} == 0 )); then
