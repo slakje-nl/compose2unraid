@@ -15,40 +15,13 @@ function compose2unraid_refuse(string $message): never
     exit;
 }
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    compose2unraid_refuse('This endpoint only accepts POST.');
+$token = compose2unraid_csrf_token();
+$arguments = compose2unraid_run_arguments($_GET, compose2unraid_base_path(), $token);
+if (is_string($arguments)) {
+    compose2unraid_refuse($arguments);
 }
-
-$action = (string) ($_POST['action'] ?? '');
-$stack = (string) ($_POST['stack'] ?? '');
-$services = compose2unraid_words((string) ($_POST['services'] ?? ''));
-$verbs = [
-    'apply' => 'Syncing', 'update' => 'Updating', 'start' => 'Starting', 'stop' => 'Stopping',
-    'restart' => 'Restarting', 'diff' => 'Changes for', 'recreate' => 'Recreating',
-];
-if (!isset($verbs[$action])) {
-    compose2unraid_refuse('Unknown action.');
-}
-$stackDir = compose2unraid_base_path() . '/stacks/' . $stack;
-if (!compose2unraid_valid_stack_name($stack) || !is_dir($stackDir)) {
-    compose2unraid_refuse('That is not one of your stacks.');
-}
-foreach ($services as $service) {
-    if (!compose2unraid_valid_stack_name($service)) {
-        compose2unraid_refuse('That is not a valid service name.');
-    }
-}
-if ($action === 'update' && $services === []) {
-    compose2unraid_refuse('Nothing to update.');
-}
-
-$display = parse_plugin_cfg('dynamix', true)['display'] ?? [];
-$theme = preg_match('/^[a-z]+$/', $display['theme'] ?? '') === 1 ? $display['theme'] : 'white';
-$option = $action === 'update' ? '--pull' : '--' . $action;
-$arguments = $action === 'apply' ? [$stack] : [$stack, $option, ...$services];
-$title = $services === []
-    ? $verbs[$action] . ' ' . $stack
-    : $verbs[$action] . ' ' . implode(', ', $services) . ' in ' . $stack;
+$theme = compose2unraid_theme();
+$title = compose2unraid_run_title($_GET);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -64,8 +37,7 @@ $title = $services === []
 <style>
 html, body { height: 100%; }
 body {
-  margin: 0; padding: 0 4px; background: transparent; box-sizing: border-box;
-  display: flex; flex-direction: column;
+  margin: 0; padding: 8px 12px; box-sizing: border-box; display: flex; flex-direction: column;
 }
 pre {
   flex: 1; min-height: 0; overflow: auto; margin: 0; padding: 8px 10px;
@@ -121,7 +93,7 @@ if (is_resource($process)) {
             if ($line === false) {
                 break;
             }
-            echo '<script>c2uLine(' . json_encode($line, JSON_HEX_TAG | JSON_HEX_AMP) . ')</script>'
+            echo '<script>c2uLine(' . json_encode($line, COMPOSE2UNRAID_JSON_IN_HTML) . ')</script>'
                 . "\n";
         } else {
             echo "<!-- still running -->\n";
@@ -143,6 +115,6 @@ $verdict = match (true) {
 };
 ?>
 <p class="done <?= $exitCode === 0 ? 'green-text' : 'red-text' ?>"><?= $verdict ?></p>
-<div class="actions"><input type="button" value="Close" onclick="parent.c2uRunDone()"></div>
+<div class="actions"><input type="button" value="Done" onclick="parent.Shadowbox.close()"></div>
 </body>
 </html>

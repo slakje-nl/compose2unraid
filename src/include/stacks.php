@@ -64,8 +64,7 @@ $columns .= '</colgroup>';
           <?php endif ?>
           <?php if ($rows === []): ?>
             <span class="c2u-note">
-              <a href="#" class="c2u-commands" data-stack="<?= $h($stack) ?>"
-                data-base="<?= $h($basePath) ?>">stack commands</a>
+              <a href="#" class="c2u-commands" data-stack="<?= $h($stack) ?>">stack commands</a>
             </span>
           <?php endif ?>
         </th>
@@ -95,7 +94,7 @@ $columns .= '</colgroup>';
               data-flagged="<?= $h(implode(' ', $flagged)) ?>"
               data-files="<?= $files ? '1' : '' ?>" data-drift="<?= $h($entry['drift']) ?>"
               data-containers="<?= $containers ?>" data-running="<?= $running ?>"
-              data-base="<?= $h($basePath) ?>" data-name="<?= $h($name) ?>">
+              data-name="<?= $h($name) ?>">
               <?= compose2unraid_icon($name, $row['labels']) ?>
             </span>
             <span class="inner">

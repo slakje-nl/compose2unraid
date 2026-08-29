@@ -39,9 +39,12 @@ $page = render('/usr/local/emhttp/plugins/compose2unraid/Compose2Unraid.page');
 expect($page, 'id="c2u-content"', 'the page has the div the fragment replaces');
 expect($page, 'Reading the stacks', 'the page shows a placeholder until the first fetch');
 refuse($page, '/<table class="tablesorter c2u-stack"/', 'the page does not run status.sh itself');
-expect($page, 'name="csrf_token" value="token"', 'the run form carries the csrf token');
-expect($page, 'id="c2u-help"', 'the commands dialog is there');
-expect($page, 'id="c2u-run-title"', 'the run dialog has a title like the popup');
+expect($page, "openBox(url, c2uTitle(action, stack, services), 600, 900, true, 'c2uRunDone')", 'a run opens in Unraid\'s own dialog and refreshes with drift when it closes');
+expect($page, "'/plugins/compose2unraid/include/run.php?action=' + encodeURIComponent(action)", 'the run dialog loads run.php');
+expect($page, "+ '&csrf_token=' + csrf_token;", 'the run carries the page\'s csrf token');
+expect($page, "openBox('/plugins/compose2unraid/include/commands.php?stack=' + encodeURIComponent(stack),", 'the commands popup is Unraid\'s own dialog around commands.php');
+expect($page, "600, 900, true, 'c2uCommandsDone')", 'closing the commands popup refreshes without a dry run');
+refuse($page, '/<dialog|showModal|c2u-help|c2u-run-form/', 'the page has no dialogs of its own');
 expect($page, 'value="Refresh stacks" onclick="c2uRefreshStacks(this)"', 'a refresh stacks button sits below the tables');
 expect($page, 'value="Check for updates"', 'a check for updates button sits below the tables');
 expect($page, "setTimeout(function () { refresh(false); }, 5000)", 'container state ticks every five seconds without drift');
@@ -51,9 +54,6 @@ expect($page, "'/plugins/dynamix.docker.manager/include/DockerUpdate.php'", 'it 
 expect($page, "context.attach('#' + icon.id, opts)", 'the menu is the Unraid context menu');
 expect($page, "context.settings({right: false, above: 'auto'})", 'the menu opens above the icon when it would not fit below');
 expect($page, "openTerminal('docker', data.name, '.log')", 'logs open in Unraid\'s own log window');
-expect($page, '#c2u-help th { text-align: left;', 'the commands popup keeps its own table style');
-expect($page, "getElementById('c2u-help').addEventListener('close', function () { c2uRefresh(false); })", 'closing the commands popup refreshes without a dry run');
-expect($page, "getElementById('c2u-run').addEventListener('close'", 'closing the run dialog refreshes, however it is closed');
 expect($page, "if (!response.ok) { throw new Error(", 'a failed fetch keeps the table it has instead of showing the error page');
 
 $fragment = render('/usr/local/emhttp/plugins/compose2unraid/include/stacks.php');
@@ -94,7 +94,8 @@ expect($fragment, '<span class="appname">my-cache</span>', 'a container_name is 
 expect($fragment, 'src="https://example.com/web.png"', 'the icon label from the compose file is shown');
 expect($fragment, 'not created', 'a service without a container says so');
 expect($fragment, '<span class="appname">alpha-db-1</span>', 'a service added on disk shows next to the running ones');
-expect($fragment, 'data-stack="noenv"' . "\n" . '                data-base="/tmp/compose2unraid">stack commands', 'a stack with nothing to click keeps the commands link');
+expect($fragment, '<a href="#" class="c2u-commands" data-stack="noenv">stack commands</a>', 'a stack with nothing to click keeps the commands link');
+refuse($fragment, '/data-base=/', 'the base path is not the page\'s business, commands.php knows it');
 refuse($fragment, '/c2u-commands" data-stack="(alpha|gamma)"/', 'a stack with rows has the commands in the menu');
 if (substr_count($fragment, 'No services yet.') !== 1) {
     $failures[] = 'only the stack with nothing to show says No services yet';
@@ -128,11 +129,60 @@ $run = (string) file_get_contents('/usr/local/emhttp/plugins/compose2unraid/incl
 $defined = strpos($run, 'function c2uLine(');
 expect($run, "'exec setsid '", 'the run gets its own process group');
 expect($run, "exec('kill -TERM -- -' . \$pid)", 'closing the dialog kills that group');
-expect($run, 'json_encode($line, JSON_HEX_TAG | JSON_HEX_AMP)', 'a streamed line can never open or close a tag');
+expect($run, 'json_encode($line, COMPOSE2UNRAID_JSON_IN_HTML)', 'a streamed line can never open or close a tag');
+expect($run, 'compose2unraid_run_arguments($_GET, compose2unraid_base_path(), $token)', 'run.php accepts nothing the validation did not pass');
+expect($run, 'onclick="parent.Shadowbox.close()"', 'the Done button closes Unraid\'s dialog');
 $used = strpos($run, '<pre id="output">');
 if ($defined === false || $used === false || $defined > $used) {
     $failures[] = 'run.php must define c2uLine before the streamed lines call it';
 }
+
+mkdir('/tmp/compose2unraid/stacks/alpha', 0755, true);
+$base = '/tmp/compose2unraid';
+$request = fn(array $fields): array|string =>
+    compose2unraid_run_arguments($fields + ['csrf_token' => 'token'], $base, 'token');
+$refusals = [
+    'a missing token' => compose2unraid_run_arguments(['action' => 'apply', 'stack' => 'alpha'], $base, 'token'),
+    'a wrong token' => compose2unraid_run_arguments(['action' => 'apply', 'stack' => 'alpha', 'csrf_token' => 'other'], $base, 'token'),
+    'a box without a token' => compose2unraid_run_arguments(['action' => 'apply', 'stack' => 'alpha', 'csrf_token' => ''], $base, ''),
+    'an unknown action' => $request(['action' => 'down', 'stack' => 'alpha']),
+    'a stack that is not on disk' => $request(['action' => 'apply', 'stack' => 'beta']),
+    'a stack name with a path in it' => $request(['action' => 'apply', 'stack' => '../alpha']),
+    'a service name with a space' => $request(['action' => 'stop', 'stack' => 'alpha', 'services' => 'app; rm']),
+    'an update without services' => $request(['action' => 'update', 'stack' => 'alpha']),
+];
+foreach ($refusals as $case => $result) {
+    if (!is_string($result)) {
+        $failures[] = 'run.php must refuse ' . $case;
+    }
+}
+$accepted = [
+    'apply' => [['action' => 'apply', 'stack' => 'alpha'], ['alpha']],
+    'update' => [['action' => 'update', 'stack' => 'alpha', 'services' => 'app  db'], ['alpha', '--pull', 'app', 'db']],
+    'stop' => [['action' => 'stop', 'stack' => 'alpha'], ['alpha', '--stop']],
+    'diff' => [['action' => 'diff', 'stack' => 'alpha'], ['alpha', '--diff']],
+];
+foreach ($accepted as $case => [$fields, $arguments]) {
+    if ($request($fields) !== $arguments) {
+        $failures[] = 'run.php must pass ' . $case . ' as ' . implode(' ', $arguments);
+    }
+}
+if (compose2unraid_run_title(['action' => 'update', 'stack' => 'alpha', 'services' => 'app db']) !== 'Updating app, db in alpha') {
+    $failures[] = 'the run title names the services and the stack';
+}
+
+$_GET = ['stack' => 'alpha'];
+$commands = render('/usr/local/emhttp/plugins/compose2unraid/include/commands.php');
+$_GET = [];
+expect($commands, '<code>/tmp/compose2unraid/stacks/alpha/.env</code>', 'the commands popup names the secrets file');
+expect($commands, '<code>docker compose -p alpha down --remove-orphans --volumes</code>', 'the commands popup writes out down');
+expect($commands, 'onclick="c2uCopy(this, &quot;docker compose up -d --remove-orphans&quot;)"', 'every command has a copy button');
+expect($commands, 'onclick="parent.Shadowbox.close()"', 'the popup closes Unraid\'s dialog');
+$_GET = ['stack' => '../etc'];
+$refused = render('/usr/local/emhttp/plugins/compose2unraid/include/commands.php');
+$_GET = [];
+expect($refused, 'That is not a stack name.', 'a bad stack name gets no commands');
+refuse($refused, '/docker compose/', 'a bad stack name gets no commands at all');
 
 if ($failures !== []) {
     fwrite(STDERR, implode("\n", $failures) . "\n");

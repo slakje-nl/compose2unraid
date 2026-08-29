@@ -8,6 +8,12 @@ const COMPOSE2UNRAID_UPDATE_STATUS = '/var/lib/docker/unraid-update-status.json'
 const COMPOSE2UNRAID_ICON_DIR = '/var/lib/docker/unraid/images';
 const COMPOSE2UNRAID_ICON_URL = '/state/plugins/dynamix.docker.manager/images';
 const COMPOSE2UNRAID_QUESTION_ICON = '/plugins/dynamix.docker.manager/images/question.png';
+const COMPOSE2UNRAID_VAR_INI = '/var/local/emhttp/var.ini';
+const COMPOSE2UNRAID_JSON_IN_HTML = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
+const COMPOSE2UNRAID_VERBS = [
+    'apply' => 'Syncing', 'update' => 'Updating', 'start' => 'Starting', 'stop' => 'Stopping',
+    'restart' => 'Restarting', 'diff' => 'Changes for', 'recreate' => 'Recreating',
+];
 
 if (!function_exists('parse_plugin_cfg')) {
     require_once '/usr/local/emhttp/plugins/dynamix/include/Wrappers.php';
@@ -31,6 +37,59 @@ function compose2unraid_config(): array
 function compose2unraid_base_path(): string
 {
     return rtrim(compose2unraid_config()['BASE_PATH'], '/');
+}
+
+function compose2unraid_csrf_token(): string
+{
+    $var = is_file(COMPOSE2UNRAID_VAR_INI) ? parse_ini_file(COMPOSE2UNRAID_VAR_INI) : [];
+
+    return is_array($var) ? (string) ($var['csrf_token'] ?? '') : '';
+}
+
+function compose2unraid_run_arguments(array $request, string $basePath, string $token): array|string
+{
+    $given = (string) ($request['csrf_token'] ?? '');
+    if ($token === '' || !hash_equals($token, $given)) {
+        return 'This request does not carry the page\'s token. Reload the page and try again.';
+    }
+    $action = (string) ($request['action'] ?? '');
+    if (!isset(COMPOSE2UNRAID_VERBS[$action])) {
+        return 'Unknown action.';
+    }
+    $stack = (string) ($request['stack'] ?? '');
+    if (!compose2unraid_valid_stack_name($stack) || !is_dir($basePath . '/stacks/' . $stack)) {
+        return 'That is not one of your stacks.';
+    }
+    $services = compose2unraid_words((string) ($request['services'] ?? ''));
+    foreach ($services as $service) {
+        if (!compose2unraid_valid_stack_name($service)) {
+            return 'That is not a valid service name.';
+        }
+    }
+    if ($action === 'update' && $services === []) {
+        return 'Nothing to update.';
+    }
+    $option = $action === 'update' ? '--pull' : '--' . $action;
+
+    return $action === 'apply' ? [$stack] : [$stack, $option, ...$services];
+}
+
+function compose2unraid_run_title(array $request): string
+{
+    $verb = COMPOSE2UNRAID_VERBS[(string) ($request['action'] ?? '')] ?? '';
+    $stack = (string) ($request['stack'] ?? '');
+    $services = compose2unraid_words((string) ($request['services'] ?? ''));
+
+    return $services === []
+        ? $verb . ' ' . $stack
+        : $verb . ' ' . implode(', ', $services) . ' in ' . $stack;
+}
+
+function compose2unraid_theme(): string
+{
+    $display = parse_plugin_cfg('dynamix', true)['display'] ?? [];
+
+    return preg_match('/^[a-z]+$/', $display['theme'] ?? '') === 1 ? $display['theme'] : 'white';
 }
 
 function compose2unraid_run_script(string $script, string ...$arguments): array

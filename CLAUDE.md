@@ -105,16 +105,20 @@ These are written in the README and every change must keep them true.
   up whatever is on disk,
   detached from the event (`setsid ... &`), so emhttp's Docker start never waits for a stack.
 - **Nothing changes without a click.** Refreshing the page runs `status.sh`, which only reads.
-  The one endpoint that changes anything, `run.php`, accepts POST only, runs `apply.sh` with a
-  validated stack name and service names, and streams its output into the dialog the click
-  opened. `apply.sh` runs under `setsid` and the streaming loop watches for the client going
-  away (a heartbeat comment every second while the child is silent); closing the dialog kills the
-  whole process group, which also releases the lock. The container icon menu is Unraid's own
-  `context` menu from `dynamix.js` (loaded on
-  every page, CSS in `context.standalone.css`), attached the way the Docker tab does it: an
-  inline `onclick` on the icon calls `context.attach('#id', opts)` and the same click, bubbling
-  to `document`, opens it, above the icon when it would not fit below (`above: 'auto'`). Items post
-  through the same form.
+  The one endpoint that changes anything, `run.php`, is opened by Unraid's own `openBox` (a
+  Shadowbox iframe, the same dialog the webGUI's legacy pages stream into), so it is a GET;
+  Unraid's CSRF guard covers POST only and its own legacy iframes carry `csrf_token` in the
+  query, so `run.php` compares the token it is given with `/var/local/emhttp/var.ini` itself
+  (`hash_equals`) before anything else, then runs `apply.sh` with a validated stack name and
+  service names (`compose2unraid_run_arguments`, tested in the render test) and streams its
+  output into the dialog. `apply.sh` runs under `setsid` and the streaming loop watches for the
+  client going away (a heartbeat comment every second while the child is silent); closing the
+  dialog kills the whole process group, which also releases the lock. The container icon menu
+  is Unraid's own `context` menu from `dynamix.js` (loaded on every page, CSS in
+  `context.standalone.css`), attached the way the Docker tab does it: an inline `onclick` on
+  the icon calls `context.attach('#id', opts)` and the same click, bubbling to `document`, opens
+  it, above the icon when it would not fit below (`above: 'auto'`). Items open `run.php` through
+  `openBox`, whose close callback refreshes the table with a fresh dry run.
 - **A broken stack is shown as such and the others are unaffected**, at boot and on the page.
   `status.sh` also tolerates a container that disappears between listing and inspecting (a sync
   in another tab), and a failed `docker stats` sample only empties the usage columns. Any other
@@ -135,10 +139,11 @@ These are written in the README and every change must keep them true.
   `--start`, `--stop` and `--restart` pass the services, or the whole stack when none is named,
   to that compose verb. All take the boot hook's `flock`. `--diff` prints the dry run's plan and
   takes no lock.
-- **The run dialog is a form posting into an iframe.** `run.php` validates, runs `apply.sh`
-  with `proc_open`, and echoes each output line as it arrives, so a pull's progress shows live.
-  Closing either dialog, by its button or Escape, refreshes the table. No background runs, no
-  run files, no history.
+- **Both dialogs are Unraid's `openBox`.** `run.php` validates, runs `apply.sh` with
+  `proc_open`, and echoes each output line as it arrives, so a pull's progress shows live; its
+  Done button calls `parent.Shadowbox.close()`. `commands.php` renders the terminal commands
+  for a stack with copy buttons, server-side and escaped, in the same dialog. Closing either,
+  by its button or Escape, refreshes the table. No background runs, no run files, no history.
 - **Drift is what Compose itself would do.** `stack_drift` runs
   `docker compose up -d --dry-run --no-build --remove-orphans` and reads the plan:
   any container, network or volume it would create, recreate or remove makes the whole stack
@@ -211,7 +216,8 @@ src/
   Compose2Unraid.page            the page under the Docker menu, the run and commands dialogs
   include/common.php             helpers: run status.sh, read Unraid's update status, format
   include/stacks.php             the table, included by the page and fetched for refreshes
-  include/run.php                POST only: runs apply.sh and streams its output
+  include/run.php                checks the csrf token, runs apply.sh and streams its output
+  include/commands.php           the terminal commands for a stack, in the same dialog
   scripts/common.sh              config, logging, stacks(), compose(), drift detection
   scripts/status.sh              the JSON the page renders
   scripts/apply.sh               apply a stack, or pull and recreate named services
