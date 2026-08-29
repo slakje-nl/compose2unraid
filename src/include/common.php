@@ -209,9 +209,10 @@ function compose2unraid_stack_line(array $entry, array $row, string $basePath): 
     if ($row['defined'] === false) {
         return compose2unraid_badge('orange', 'bolt', 'removed on disk');
     }
-    if (in_array($row['service'], $entry['services'], true)) {
+    if ($entry['drift'] === 'changed') {
         return compose2unraid_badge('orange', 'bolt', 'changed');
     }
+
     return compose2unraid_badge('green', 'check', 'up to date');
 }
 

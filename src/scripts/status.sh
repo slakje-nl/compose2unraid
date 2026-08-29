@@ -10,9 +10,8 @@ stack_entry() {
   local stack="$1" drift="$2" detail="${3:-}" defined="${4:-[]}"
   jq -cn --arg name "$stack" --arg drift "$drift" --arg detail "$detail" \
     --argjson defined "$defined" \
-    '{name: $name, drift: $drift, services: [], error: null, defined: $defined}
-      + (if $drift == "broken" then {error: $detail}
-         else {services: ($detail | split(" ") | map(select(. != "")))} end)'
+    '{name: $name, drift: $drift, error: null, defined: $defined}
+      + (if $drift == "broken" then {error: $detail} else {} end)'
 }
 
 defined_services() {

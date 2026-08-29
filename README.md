@@ -52,10 +52,10 @@ Each stack is a table headed by its name, with a row for every service in its co
 for every container it still has, so a stack is listed as soon as its files are synced. The
 **Stack** column says how the row relates to the files on disk:
 
-- **up to date** (green): the container runs the configuration that is on disk.
-- **changed** (orange): `docker compose up` would recreate it, because the compose file, the
-  override or an interpolated `.env` value differs from what runs. This is Compose's own dry run
-  of the files on disk.
+- **up to date** (green): the stack runs the configuration that is on disk.
+- **changed** (orange): `docker compose up` would create, recreate or remove something in this
+  stack, because the compose file, the override or an interpolated `.env` value differs from what
+  runs. This is Compose's own dry run of the files on disk; **Show diff** names the containers.
 - **removed on disk** (orange): the service is no longer in the file.
 - **not deployed** (grey): the service is in the file but has no container yet.
 - **no files** (red): the container exists but there is no directory for its project name under

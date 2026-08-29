@@ -132,9 +132,11 @@ These are written in the README and every change must keep them true.
   run files, no history.
 - **Drift is what Compose itself would do.** `stack_drift` runs
   `docker compose up -d --dry-run --no-build --pull never --remove-orphans` and reads the plan:
-  every container it would create, recreate or remove makes the stack `changed` and names the
-  service: an existing container through its `com.docker.compose.service` label, one not yet
-  created through the compose file's `container_name` or Compose's default name. Apply runs the same
+  any container, network or volume it would create, recreate or remove makes the whole stack
+  `changed`; nothing is attributed to a service, "Show diff" prints the plan for that. The plan
+  lines are `Container <name> Recreate` in the pinned compose and ` DRY-RUN MODE -  Container
+  <name> Recreate` in the 2.x line, so `plan_changes_something` matches the words wherever they
+  sit on the line, never a field position. Apply runs the same
   command without `--dry-run`, so the page and the action can never
   disagree. No containers is `new`; containers without a directory is `gone`; a plan Compose
   cannot make (a file it cannot read) is `broken` with the last line of its error; everything

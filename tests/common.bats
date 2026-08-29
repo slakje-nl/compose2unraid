@@ -105,7 +105,7 @@ teardown() {
   run bash -c "source '$SCRIPTS/common.sh'; load_config; for s in fresh same edited grown shrunk named broken; do printf '%s: ' \$s; stack_drift \$s; done"
 
   [ "$status" -eq 0 ]
-  [ "$output" = $'fresh: new\nsame: insync\nedited: changed app\ngrown: changed app extra\nshrunk: changed old\nnamed: changed app\nbroken: broken compose up failed for broken' ]
+  [ "$output" = $'fresh: new\nsame: insync\nedited: changed\ngrown: changed\nshrunk: changed\nnamed: changed\nbroken: broken compose up failed for broken' ]
   docker_calls | grep -q -- '-p same up -d --dry-run --no-build --pull never --remove-orphans$'
   ! docker_calls | grep -q -- '-p fresh up'
 }
@@ -120,5 +120,16 @@ teardown() {
 
   run bash -c "source '$SCRIPTS/common.sh'; load_config; stack_drift alpha; stack_drift beta"
 
-  [ "$output" = $'changed app\ninsync' ]
+  [ "$output" = $'changed\ninsync' ]
+}
+
+@test "the plan is read by its words, with or without the dry-run prefix compose 2.x prints" {
+  pinned=$' Container alpha-app-1 Running \n Container alpha-db-1 Recreate \n Container alpha-db-1 Recreated '
+  older=$'  DRY-RUN MODE -  Network alpha_default Creating \n  DRY-RUN MODE -  Container alpha-app-1 Creating '
+  quiet=$' Container alpha-app-1 Running \n Container alpha-app-1 Started '
+
+  run bash -c "source '$SCRIPTS/common.sh'; plan_changes_something \"\$1\" && echo pinned; plan_changes_something \"\$2\" && echo older; plan_changes_something \"\$3\" || echo quiet" _ "$pinned" "$older" "$quiet"
+
+  [ "$status" -eq 0 ]
+  [ "$output" = $'pinned\nolder\nquiet' ]
 }

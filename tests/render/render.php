@@ -56,7 +56,10 @@ expect($fragment, '<th>Stack</th><th>Health</th>', 'a stack column sits before h
 $stackCell = fn(string $colour, string $icon, string $text): string =>
     '<td><span class="' . $colour . '-text"><i class="fa fa-' . $icon . '"></i> ' . $text . '</span></td>';
 expect($fragment, $stackCell('orange', 'bolt', 'changed'), 'a changed service is orange');
-expect($fragment, $stackCell('green', 'check', 'up to date'), 'an unchanged service is green');
+expect($fragment, $stackCell('green', 'check', 'up to date'), 'a service of a stack in sync is green');
+if (substr_count($fragment, 'up to date</span>') !== 1) {
+    $failures[] = 'only the stack in sync says up to date, a changed stack says so on every row';
+}
 expect($fragment, $stackCell('grey', 'circle-o', 'not deployed'), 'a service with no container is grey');
 expect($fragment, $stackCell('red', 'times-circle', 'no files'), 'a container without files is red');
 expect($fragment, $stackCell('orange', 'bolt', 'removed on disk'), 'a container whose service left the file says so');

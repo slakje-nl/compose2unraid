@@ -39,12 +39,12 @@ show_diff() {
   read -r drift detail < <(stack_drift "$stack")
   case "$drift" in
     new) printf 'Nothing of %s is running yet. Sync stack would create:\n' "$stack" ;;
-    changed) printf 'Sync stack would change %s in %s. The plan:\n' "$detail" "$stack" ;;
+    changed) printf 'Sync stack would change %s. The plan:\n' "$stack" ;;
     broken) printf 'Compose cannot read %s: %s\n' "$stack" "$detail"; return 1 ;;
     *) printf '%s is in sync, sync stack would change nothing\n' "$stack"; return 0 ;;
   esac
   plan="$(planned_changes "$stack")"
-  awk '$1 == "Container" || $1 == "Network" || $1 == "Volume"' <<< "$plan"
+  sed -E 's/^.*DRY-RUN MODE - *//; /^ *(Container|Network|Volume) /!d' <<< "$plan"
 }
 
 recreate_stack() {
@@ -59,7 +59,7 @@ apply_stack() {
   read -r drift detail < <(stack_drift "$stack")
   case "$drift" in
     new|changed)
-      printf 'Applying %s%s\n' "$stack" "${detail:+ ($detail)}"
+      printf 'Applying %s\n' "$stack"
       compose "$stack" up -d --remove-orphans
       ;;
     broken)
