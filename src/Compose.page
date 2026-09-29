@@ -107,10 +107,8 @@ function c2uMenu(icon, event) {
       event.preventDefault();
       c2uLogs(data.name);
     }});
-    if (data.update === '1') {
-      opts.push({text: data.state === 'running' ? 'Update and restart' : 'Update and start',
-        icon: 'fa-cloud-download', action: run('update', data.service)});
-    }
+    opts.push({text: data.state === 'running' ? 'Update and restart' : 'Update and start',
+      icon: 'fa-cloud-download', action: run('update', data.service)});
   }
   if (data.files === '1') {
     opts.push({header: 'Stack'});
