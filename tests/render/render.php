@@ -51,7 +51,7 @@ expect($page, "setTimeout(function () { refresh(false); }, 5000)", 'container st
 expect($page, "(drift ? '' : '?drift=0')", 'a tick asks the fragment to skip the dry run');
 expect($page, "refresh(true);\n})();", 'the first load checks drift');
 expect($page, "context.attach('#' + icon.id, opts)", 'the menu is the Unraid context menu');
-expect($page, "context.settings({right: false, above: 'auto'})", 'the menu opens above the icon when it would not fit below');
+expect($page, "context.settings({right: false, above: c2uMenuAbove(icon, event)})", 'the menu opens above the icon when it would not fit below');
 expect($page, "openTerminal('docker', data.name, '.log')", 'Logs (new tab) opens Unraid\'s own log window');
 expect($page, "{text: 'Logs (popup)', icon: 'fa-list-alt'", 'Logs (popup) sits next to it');
 expect($page, "openBox('/plugins/compose2unraid/include/logs.php?name=' + encodeURIComponent(name)", 'the popup streams logs.php in Unraid\'s dialog');
@@ -75,7 +75,7 @@ expect($fragment, 'update ready', 'a container Unraid flagged shows the badge');
 expect($fragment, '<i class="fa fa-bolt"></i> update ready</span>', 'update ready is a plain badge');
 refuse($fragment, '/<a[^>]*>[^<]*<i class="fa fa-bolt"><\/i> update ready/', 'update ready is not a link');
 refuse($fragment, '/class="c2u-run"/', 'the header carries no actions, the icon menu does');
-$icon = 'id="c2u-aaaaaaaaaaaa"' . "\n" . '              onclick="c2uMenu(this)" data-stack="alpha"' . "\n"
+$icon = 'id="c2u-aaaaaaaaaaaa"' . "\n" . '              onclick="c2uMenu(this, event)" data-stack="alpha"' . "\n"
     . '              data-service="app"' . "\n" . '              data-state="running"' . "\n"
     . '              data-update="1"' . "\n" . '              data-flagged="app"' . "\n"
     . '              data-files="1"';
@@ -84,9 +84,9 @@ expect($fragment, 'data-name="alpha-app-1"', 'the icon knows the container name 
 expect($fragment, 'data-files="1" data-drift="changed"' . "\n" . '              data-containers="2" data-running="2"', 'the icon knows the stack drift, its containers and how many run');
 expect($fragment, 'data-containers="1" data-running="0"', 'a stack whose containers are all stopped says so');
 expect($fragment, 'data-stack="gamma"' . "\n" . '              data-service="web"' . "\n" . '              data-state=""' . "\n" . '              data-update=""' . "\n" . '              data-flagged=""' . "\n" . '              data-files="1" data-drift="new"' . "\n" . '              data-containers="0"', 'a stack with no containers offers no stack start or stop');
-expect($fragment, 'id="c2u-cccccccccccc"' . "\n" . '              onclick="c2uMenu(this)" data-stack="gone"', 'a container without files still gets the menu');
+expect($fragment, 'id="c2u-cccccccccccc"' . "\n" . '              onclick="c2uMenu(this, event)" data-stack="gone"', 'a container without files still gets the menu');
 expect($fragment, 'data-stack="gone"' . "\n" . '              data-service="app"' . "\n" . '              data-state="exited"' . "\n" . '              data-update=""' . "\n" . '              data-flagged=""' . "\n" . '              data-files=""', 'without files the menu knows to offer commands only');
-$placeholder = 'id="c2u-gamma-web"' . "\n" . '              onclick="c2uMenu(this)" data-stack="gamma"' . "\n"
+$placeholder = 'id="c2u-gamma-web"' . "\n" . '              onclick="c2uMenu(this, event)" data-stack="gamma"' . "\n"
     . '              data-service="web"' . "\n" . '              data-state=""';
 expect($fragment, $placeholder, 'a service on disk with no container gets a row and a menu');
 expect($fragment, '<span class="appname">gamma-web-1</span>', 'the row is named like the container will be');

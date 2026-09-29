@@ -87,7 +87,7 @@ $columns .= '</colgroup>';
         <td>
           <span class="outer <?= $state === 'running' ? 'started' : 'stopped' ?>">
             <span class="hand" id="<?= $h($row['id']) ?>"
-              onclick="c2uMenu(this)" data-stack="<?= $h($stack) ?>"
+              onclick="c2uMenu(this, event)" data-stack="<?= $h($stack) ?>"
               data-service="<?= $h($row['service']) ?>"
               data-state="<?= $h($state) ?>"
               data-update="<?= $update === true ? '1' : '' ?>"
