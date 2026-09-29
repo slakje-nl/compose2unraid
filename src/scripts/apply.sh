@@ -82,17 +82,29 @@ apply_stack() {
   log info "applied $stack"
 }
 
+images_left_behind() {
+  local stack="$1" before="$2"
+  shift 2
+  [[ -n "$before" ]] || return 0
+
+  comm -23 <(printf '%s\n' "$before") <(service_image_ids "$stack" "$@")
+}
+
 update_services() {
   local stack="$1"
   shift
-  local -a old_images
-  mapfile -t old_images < <(service_image_ids "$stack" "$@")
+  local before
+  local -a replaced
+  before="$(service_image_ids "$stack" "$@")"
   printf 'Pulling %s\n' "$*"
   compose "$stack" pull "$@"
-  printf 'Recreating %s\n' "$*"
+  printf 'Recreating %s if the pull brought a newer image\n' "$*"
   compose "$stack" up -d --no-deps "$@"
-  if (( ${#old_images[@]} > 0 )); then
-    tidy_images "${old_images[@]}"
+  mapfile -t replaced < <(images_left_behind "$stack" "$before" "$@")
+  if (( ${#replaced[@]} > 0 )); then
+    tidy_images "${replaced[@]}"
+  elif [[ -n "$before" ]]; then
+    printf 'No newer image for %s\n' "$*"
   fi
   log info "updated $stack: $*"
 }

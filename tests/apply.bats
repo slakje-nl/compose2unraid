@@ -87,6 +87,21 @@ teardown() {
   plugin_log | grep -q 'updated alpha: app'
 }
 
+@test "an update that pulls nothing newer keeps the image and says so" {
+  make_stack alpha
+  add_running alpha app "$(stack_hash alpha)" 2021-01-01T00:00:00Z example/alpha:1 sha256:a1
+
+  run "$SCRIPTS/apply.sh" alpha --pull app
+
+  [ "$status" -eq 0 ]
+  docker_calls | grep -q -- '-p alpha pull app$'
+  docker_calls | grep -q -- '-p alpha up -d --no-deps app$'
+  ! docker_calls | grep -q 'image rm'
+  [[ "$output" == *"No newer image for app"* ]]
+  [[ "$output" != *"Kept the old image"* ]]
+  plugin_log | grep -q 'updated alpha: app'
+}
+
 @test "update refuses a service the stack does not have" {
   make_stack alpha
 
