@@ -75,7 +75,14 @@ function c2uRun(action, stack, services) {
   openBox(url, c2uTitle(action, stack, services), 600, 900, true, 'c2uRunDone');
 }
 
-function c2uMenu(icon) {
+var c2uMenuClearance = 80;
+
+function c2uMenuAbove(icon, event) {
+  var menuHeight = $('#dropdown-' + icon.id).height();
+  return event.clientY + 24 + menuHeight + c2uMenuClearance > window.innerHeight;
+}
+
+function c2uMenu(icon, event) {
   var data = icon.dataset;
   var opts = [];
   function run(action, services) {
@@ -132,8 +139,8 @@ function c2uMenu(icon) {
     event.preventDefault();
     c2uShowCommands(data.stack);
   }});
-  context.settings({right: false, above: 'auto'});
   context.attach('#' + icon.id, opts);
+  context.settings({right: false, above: c2uMenuAbove(icon, event)});
 }
 
 function c2uRunDone() {
