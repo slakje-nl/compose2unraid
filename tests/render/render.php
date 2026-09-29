@@ -53,7 +53,8 @@ expect($page, "refresh(true);\n})();", 'the first load checks drift');
 expect($page, "context.attach('#' + icon.id, opts)", 'the menu is the Unraid context menu');
 expect($page, "context.settings({right: false, above: c2uMenuAbove(icon, event)})", 'the menu opens above the icon when it would not fit below');
 expect($page, "openTerminal('docker', data.name, '.log')", 'Logs (new tab) opens Unraid\'s own log window');
-expect($page, "{text: 'Logs (popup)', icon: 'fa-list-alt'", 'Logs (popup) sits next to it');
+expect($page, "{text: 'Popup', icon: 'fa-list-alt'", 'the popup log sits next to it');
+expect($page, "opts.push({header: 'Container logs'});", 'the logs have a section of their own');
 expect($page, "openBox('/plugins/compose2unraid/include/logs.php?name=' + encodeURIComponent(name)", 'the popup streams logs.php in Unraid\'s dialog');
 expect($page, "if (!response.ok) { throw new Error(", 'a failed fetch keeps the table it has instead of showing the error page');
 
