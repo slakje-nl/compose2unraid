@@ -99,16 +99,17 @@ function c2uMenu(icon, event) {
       opts.push({text: 'Start', icon: 'fa-play', action: run('start', data.service)});
     }
     opts.push({text: 'Restart', icon: 'fa-refresh', action: run('restart', data.service)});
-    opts.push({text: 'Logs (new tab)', icon: 'fa-navicon', action: function (event) {
+    opts.push({text: data.state === 'running' ? 'Update and restart' : 'Update and start',
+      icon: 'fa-cloud-download', action: run('update', data.service)});
+    opts.push({header: 'Container logs'});
+    opts.push({text: 'New tab', icon: 'fa-navicon', action: function (event) {
       event.preventDefault();
       openTerminal('docker', data.name, '.log');
     }});
-    opts.push({text: 'Logs (popup)', icon: 'fa-list-alt', action: function (event) {
+    opts.push({text: 'Popup', icon: 'fa-list-alt', action: function (event) {
       event.preventDefault();
       c2uLogs(data.name);
     }});
-    opts.push({text: data.state === 'running' ? 'Update and restart' : 'Update and start',
-      icon: 'fa-cloud-download', action: run('update', data.service)});
   }
   if (data.files === '1') {
     opts.push({header: 'Stack'});
