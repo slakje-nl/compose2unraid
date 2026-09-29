@@ -151,6 +151,12 @@ Every change must keep them true.
   page's token checked. `check.php` and `commands.php` share the dialog too. Closing any of
   them, by its button or Escape, refreshes the table. No background runs, no run files, no
   history.
+- **The WebUI item is Unraid's label, resolved the way the Docker tab does.** `status.sh`
+  lists the ports each container publishes; `compose2unraid_webui_url` takes
+  `net.unraid.docker.webui` from the container's labels, puts `IPADDR` from `var.ini` in for
+  `[IP]` and the published host port in for `[PORT:n]` (the number itself when nothing is
+  published, host networking), and the name of a running container with one becomes that link,
+  opening in a new tab; nothing runs.
 - **Drift is what Compose itself would do.** `stack_drift` runs
   `docker compose up -d --dry-run --no-build --remove-orphans` and reads the plan:
   any container, network or volume it would create, recreate or remove makes the whole stack

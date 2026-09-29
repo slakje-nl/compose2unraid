@@ -40,6 +40,7 @@ The plugin reads one directory:
   example-app/
     compose.yaml            required: this is what makes the directory a stack
     compose.override.yaml   optional, for Unraid labels such as net.unraid.docker.icon
+                            and net.unraid.docker.webui
     .env                    optional secrets, kept on the box, never in git
     nginx/default.conf      anything the stack bind-mounts, referenced relatively
   example-db/
@@ -56,6 +57,11 @@ The plugin creates `stacks/` when it is installed (or, if the array was not up y
 starts). Every directory directly under it with a compose file is a stack. The project name is
 the directory name, always, so container names stay stable and `docker compose ls` shows what
 the page shows. Compose finds `compose.yaml` and the override file by itself.
+
+A service with the label `net.unraid.docker.webui` has its container name on the page link to
+that address while it runs. The value is a URL, either complete or with Unraid's placeholders: `[IP]` becomes the
+box's address and `[PORT:8080]` the host port that container port 8080 is published on, so
+`http://[IP]:[PORT:8080]/` is the usual shape, the same one Unraid's own templates use.
 
 ## Requirements
 

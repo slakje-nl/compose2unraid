@@ -80,6 +80,13 @@ $icon = 'id="c2u-aaaaaaaaaaaa"' . "\n" . '              onclick="c2uMenu(this, e
     . '              data-flagged="app"' . "\n" . '              data-files="1"';
 expect($fragment, $icon, 'a container icon opens the Unraid context menu with what it needs');
 expect($fragment, 'data-name="alpha-app-1"', 'the icon knows the container name for the logs');
+expect($fragment, '<a class="appname" href="http://192.0.2.10:8081/admin" target="_blank"' . "\n" . '                  rel="noopener">alpha-app-1</a>', 'the name links to the WebUI, [IP] resolved to the box and [PORT:n] to the published port');
+expect($fragment, 'href="https://beta.example.com/" target="_blank"', 'a plain WebUI URL is passed as it is');
+expect($fragment, '<span class="appname">alpha-db-1</span>', 'a container without the label keeps a plain name');
+expect($fragment, '<span class="appname">gone-app-1</span>', 'a container that does not run keeps a plain name');
+if (compose2unraid_webui_url(['labels' => ['net.unraid.docker.webui' => 'http://[IP]:[PORT:8443]/'], 'ports' => []], '192.0.2.10') !== 'http://192.0.2.10:8443/') {
+    $failures[] = 'an unpublished port, host networking, keeps its number';
+}
 expect($fragment, 'data-files="1" data-drift="changed"' . "\n" . '              data-containers="2" data-running="2"', 'the icon knows the stack drift, its containers and how many run');
 expect($fragment, 'data-containers="1" data-running="0"', 'a stack whose containers are all stopped says so');
 expect($fragment, 'data-stack="gamma"' . "\n" . '              data-service="web"' . "\n" . '              data-state=""' . "\n" . '              data-flagged=""' . "\n" . '              data-files="1" data-drift="new"' . "\n" . '              data-containers="0"', 'a stack with no containers offers no stack start or stop');
@@ -128,7 +135,7 @@ $notChecked = '<span class="grey-text" title="This stack appeared after the last
 expect($quick, '<td>' . $notChecked . '</td>', 'a container of a stack not checked yet says so on its row');
 expect($quick, '<span class="c2u-note">' . $notChecked . '</span>', 'a stack not checked yet and without rows says so in its header');
 expect($quick, 'data-drift="unknown"', 'the menu knows the stack was not checked');
-expect($quick, '<span class="appname">alpha-app-1</span>', 'a tick has the stacks');
+expect($quick, 'rel="noopener">alpha-app-1</a>', 'a tick has the stacks');
 
 $run = (string) file_get_contents('/usr/local/emhttp/plugins/compose2unraid/include/run.php');
 $common = (string) file_get_contents('/usr/local/emhttp/plugins/compose2unraid/include/common.php');

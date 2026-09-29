@@ -10,6 +10,7 @@ $byStack = compose2unraid_containers_by_stack($status['containers']);
 $stats = compose2unraid_stats_by_id($status['stats'], (int) ($status['cpus'] ?? 1));
 $updateStatus = compose2unraid_update_status();
 $basePath = compose2unraid_base_path();
+$address = compose2unraid_box_address();
 $h = 'compose2unraid_h';
 $columns = '<colgroup>';
 foreach (['name', 'stack', 'health', 'version', 'cpu', 'memory', 'uptime'] as $column) {
@@ -82,6 +83,7 @@ $columns .= '</colgroup>';
       $state = $container['state'] ?? '';
       $update = $container === null ? null : compose2unraid_image_update($container, $updateStatus);
       $usage = $container === null ? null : compose2unraid_container_usage($container, $stats);
+      $webui = $state === 'running' ? compose2unraid_webui_url($container, $address) : '';
       ?>
       <tr>
         <td>
@@ -97,7 +99,12 @@ $columns .= '</colgroup>';
               <?= compose2unraid_icon($name, $row['labels']) ?>
             </span>
             <span class="inner">
-              <span class="appname"><?= $h($name) ?></span><br>
+              <?php if ($webui !== ''): ?>
+                <a class="appname" href="<?= $h($webui) ?>" target="_blank"
+                  rel="noopener"><?= $h($name) ?></a><br>
+              <?php else: ?>
+                <span class="appname"><?= $h($name) ?></span><br>
+              <?php endif ?>
               <?= compose2unraid_container_state_line($state) ?>
             </span>
           </span>

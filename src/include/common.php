@@ -9,6 +9,7 @@ const COMPOSE2UNRAID_ICON_DIR = '/var/lib/docker/unraid/images';
 const COMPOSE2UNRAID_ICON_URL = '/state/plugins/dynamix.docker.manager/images';
 const COMPOSE2UNRAID_QUESTION_ICON = '/plugins/dynamix.docker.manager/images/question.png';
 const COMPOSE2UNRAID_VAR_INI = '/var/local/emhttp/var.ini';
+const COMPOSE2UNRAID_WEBUI_LABEL = 'net.unraid.docker.webui';
 const COMPOSE2UNRAID_TOKEN_REFUSAL =
     'This request does not carry the page\'s token. Reload the page and try again.';
 const COMPOSE2UNRAID_DOCKER_CLIENT =
@@ -104,11 +105,43 @@ function compose2unraid_check_verdict(array $entry): string
     };
 }
 
-function compose2unraid_csrf_token(): string
+function compose2unraid_var(string $key): string
 {
     $var = is_file(COMPOSE2UNRAID_VAR_INI) ? parse_ini_file(COMPOSE2UNRAID_VAR_INI) : [];
 
-    return is_array($var) ? (string) ($var['csrf_token'] ?? '') : '';
+    return is_array($var) ? (string) ($var[$key] ?? '') : '';
+}
+
+function compose2unraid_csrf_token(): string
+{
+    return compose2unraid_var('csrf_token');
+}
+
+function compose2unraid_box_address(): string
+{
+    $address = compose2unraid_var('IPADDR');
+    $requestHost = (string) strtok((string) ($_SERVER['HTTP_HOST'] ?? ''), ':');
+
+    return $address !== '' ? $address : $requestHost;
+}
+
+function compose2unraid_webui_url(array $container, string $address): string
+{
+    $url = (string) ($container['labels'][COMPOSE2UNRAID_WEBUI_LABEL] ?? '');
+    if ($url === '') {
+        return '';
+    }
+    $published = [];
+    foreach ($container['ports'] ?? [] as $port) {
+        $published[$port['private']] = $port['public'];
+    }
+    $url = str_replace('[IP]', $address, $url);
+
+    return (string) preg_replace_callback(
+        '/\[PORT:(\d+)\]/',
+        fn(array $match): string => (string) ($published[$match[1]] ?? $match[1]),
+        $url
+    );
 }
 
 function compose2unraid_run_arguments(array $request, string $basePath, string $token): array|string

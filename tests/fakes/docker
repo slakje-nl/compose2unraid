@@ -278,13 +278,22 @@ complain_about_vanished() {
   (( found == 0 ))
 }
 
+published_ports() {
+  jq -cn --arg ports "${FAKE_DOCKER_PUBLISHED_PORTS:-}" '$ports | split(" ")
+    | map(select(. != "") | split(":") | {id: .[0], private: .[1], public: .[2]})'
+}
+
 inspect_json() {
-  containers_fixture | awk -v ids=" $(present "$@" | tr '\n' ' ') " 'index(ids, " " $1 " ")' | jq -Rs '
+  containers_fixture | awk -v ids=" $(present "$@" | tr '\n' ' ') " 'index(ids, " " $1 " ")' |
+    jq -Rs --argjson published "$(published_ports)" '
     split("\n") | map(select(. != "") | split(" ") | {
       Id: .[0], Name: ("/" + .[1] + "-" + .[2] + "-1"), Image: .[4], Created: .[6],
       State: {Status: "running", StartedAt: .[6]},
       Config: {Image: .[3], Labels: {
-        "com.docker.compose.project": .[1], "com.docker.compose.service": .[2]}}})'
+        "com.docker.compose.project": .[1], "com.docker.compose.service": .[2]}},
+      NetworkSettings: {Ports: ([.[0] as $id | $published[] | select(.id == $id)
+        | {key: (.private + "/tcp"), value: [{HostIp: "0.0.0.0", HostPort: .public}]}]
+        | from_entries)}})'
 }
 
 fake_inspect() {
