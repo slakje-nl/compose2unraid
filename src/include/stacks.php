@@ -90,7 +90,6 @@ $columns .= '</colgroup>';
               onclick="c2uMenu(this, event)" data-stack="<?= $h($stack) ?>"
               data-service="<?= $h($row['service']) ?>"
               data-state="<?= $h($state) ?>"
-              data-update="<?= $update === true ? '1' : '' ?>"
               data-flagged="<?= $h(implode(' ', $flagged)) ?>"
               data-files="<?= $files ? '1' : '' ?>" data-drift="<?= $h($entry['drift']) ?>"
               data-containers="<?= $containers ?>" data-running="<?= $running ?>"

@@ -6,8 +6,8 @@ compose2unraid is a small Unraid plugin for people who keep their Docker Compose
 repository and deploy from a terminal. It brings the stacks on disk up when Docker starts, and it
 shows them on a Compose tab next to Docker: containers, health, versions, resource use, whether what
 runs still matches the files on disk, and whether Unraid found a newer image. The icon menu on each
-row does a little work: sync a stack whose files changed, recreate it, update the images Unraid
-flagged, and start, stop or restart a service. Each is one `docker compose` command. Everything else
+row does a little work: sync a stack whose files changed, recreate it, update a service's image,
+and start, stop or restart a service. Each is one `docker compose` command. Everything else
 is read-only, and the plugin knows nothing about git.
 
 Repository: `git@github.com:slakje-nl/compose2unraid.git`
@@ -75,8 +75,8 @@ CI.
   the logic; only a pasted result from a real install proves the plugin.
 - **Six verbs, each one compose command.** The icon menu can apply a stack (`up -d
   --remove-orphans`, "Sync stack"), recreate it (`up -d --force-recreate --remove-orphans`),
-  update services (`pull` then `up -d --no-deps` of those, offered only for an image Unraid
-  flagged), and
+  update services (`pull` then `up -d --no-deps` of those, offered on every container; the
+  "update ready" badge only says Unraid found a newer image), and
   start, stop or restart services; the header carries no links. "Show diff" is the same dry run
   the status uses and changes nothing. Nothing else changes a container from the page: no
   `down`, no volume removal, no image removal beyond the one an update replaced. Those stay
@@ -97,8 +97,8 @@ The approved set:
 
 Every change must keep them true.
 
-- **A container's image changes only when the user asks**: the update link on a service Unraid
-  flagged, or a pull in a terminal. The boot hook uses `--no-recreate`, apply and the hook pull
+- **A container's image changes only when the user asks**: the Update item in a container's
+  icon menu, or a pull in a terminal. The boot hook uses `--no-recreate`, apply and the hook pull
   only an image the box does not have (Compose's `missing` policy, the same in the dry run, so a
   new service plans as `Creating` and the dry run resolves that one image against its registry),
   and "update ready" comes from Unraid's own update status file, written by Unraid's own
