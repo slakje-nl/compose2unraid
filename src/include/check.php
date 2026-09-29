@@ -73,17 +73,18 @@ if ($images === []) {
 $update = new DockerUpdate();
 $newer = 0;
 $unknown = 0;
+$pinned = 0;
 foreach ($images as $image) {
     compose2unraid_say($image . ': ');
-    $verdict = 'unknown';
+    if (compose2unraid_pinned_by_digest($image)) {
+        $pinned++;
+        compose2unraid_say("pinned by digest, the compose file decides the version\n");
+        continue;
+    }
     try {
         $update->reloadUpdateStatus($image);
         $entry = compose2unraid_update_status()[DockerUtil::ensureImageTag($image)] ?? [];
-        $verdict = match ($entry['status'] ?? '') {
-            'false' => 'update ready',
-            'true' => 'up to date',
-            default => 'unknown, the registry did not answer',
-        };
+        $verdict = compose2unraid_check_verdict($entry);
     } catch (Throwable $failure) {
         $verdict = 'unknown, ' . $failure->getMessage();
     }
@@ -97,7 +98,7 @@ foreach ($images as $image) {
         break;
     }
 }
-$summary = compose2unraid_check_summary(count($images), $newer, $unknown);
+$summary = compose2unraid_check_summary(count($images), $newer, $unknown, $pinned);
 $colour = $newer > 0 ? 'orange-text' : 'green-text';
 ?>
 <p class="done <?= $colour ?>"><?= compose2unraid_h($summary) ?></p>

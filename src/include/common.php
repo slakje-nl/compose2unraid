@@ -74,15 +74,34 @@ function compose2unraid_images_to_check(array $status): array
     return array_keys($images);
 }
 
-function compose2unraid_check_summary(int $total, int $newer, int $unknown): string
+function compose2unraid_check_summary(int $total, int $newer, int $unknown, int $pinned = 0): string
 {
     $summary = $newer . ' of ' . $total . ' image' . ($total === 1 ? '' : 's')
         . ($newer === 1 ? ' has' : ' have') . ' a newer version.';
     if ($unknown > 0) {
         $summary .= ' ' . $unknown . ' could not be checked.';
     }
+    if ($pinned > 0) {
+        $summary .= ' ' . $pinned . ($pinned === 1 ? ' is' : ' are') . ' pinned by digest.';
+    }
 
     return $summary;
+}
+
+function compose2unraid_pinned_by_digest(string $image): bool
+{
+    return str_contains($image, '@sha256:');
+}
+
+function compose2unraid_check_verdict(array $entry): string
+{
+    return match ($entry['status'] ?? '') {
+        'false' => 'update ready',
+        'true' => 'up to date',
+        default => ($entry['remote'] ?? null) === null
+            ? 'unknown, the registry did not answer'
+            : 'unknown, the box has no registry digest for it (built or loaded locally?)',
+    };
 }
 
 function compose2unraid_csrf_token(): string

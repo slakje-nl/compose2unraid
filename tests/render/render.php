@@ -63,8 +63,8 @@ $stackCell = fn(string $colour, string $icon, string $text): string =>
     '<td><span class="' . $colour . '-text"><i class="fa fa-' . $icon . '"></i> ' . $text . '</span></td>';
 expect($fragment, $stackCell('orange', 'bolt', 'changed'), 'a changed service is orange');
 expect($fragment, $stackCell('green', 'check', 'up to date'), 'a service of a stack in sync is green');
-if (substr_count($fragment, 'up to date</span>') !== 1) {
-    $failures[] = 'only the stack in sync says up to date, a changed stack says so on every row';
+if (substr_count($fragment, 'up to date</span>') !== 2) {
+    $failures[] = 'only the two rows of the stack in sync say up to date, a changed stack never does';
 }
 expect($fragment, $stackCell('grey', 'circle-o', 'not deployed'), 'a service with no container is grey');
 expect($fragment, $stackCell('red', 'times-circle', 'no files'), 'a container without files is red');
@@ -201,7 +201,9 @@ expect($check, 'c2uLine("example\/beta: ")</script>' . "\n" . '<script>c2uLine("
 expect($check, 'c2uLine("example\/torn: ")</script>' . "\n" . '<script>c2uLine("unknown, no route to host\n")', 'a registry failure is shown, not fatal');
 expect($check, 'c2uLine("example\/delta:2: ")</script>' . "\n" . '<script>c2uLine("unknown, the registry did not answer\n")', 'an image with no verdict is unknown');
 refuse($check, '#example\\\\/gone#', 'a stack without files is not checked');
-expect($check, '<p class="done orange-text">1 of 5 images has a newer version. 3 could not be checked.</p>', 'the summary counts newer and unchecked images');
+expect($check, 'c2uLine("example\/old: ")</script>' . "\n" . '<script>c2uLine("unknown, the box has no registry digest for it (built or loaded locally?)\n")', 'an image the box never pulled says so rather than blaming the registry');
+expect($check, 'c2uLine("example\/cache:7@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef: ")</script>' . "\n" . '<script>c2uLine("pinned by digest, the compose file decides the version\n")', 'an image pinned by digest is not asked about');
+expect($check, '<p class="done orange-text">1 of 6 images has a newer version. 3 could not be checked. 1 is pinned by digest.</p>', 'the summary counts newer, unchecked and pinned images');
 expect($check, 'onclick="parent.Shadowbox.close()"', 'the check closes Unraid\'s dialog');
 expect($check, '</div>' . "\n" . '<script>parent.c2uRefresh(false)</script>', 'the table behind refreshes as soon as the check is done');
 if (compose2unraid_check_summary(1, 1, 0) !== '1 of 1 image has a newer version.') {
