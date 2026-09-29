@@ -2,6 +2,10 @@
 
 class DockerUpdate
 {
+    public function setUpdateStatus($image, $version): void
+    {
+    }
+
     public function reloadUpdateStatus($image = null): void
     {
         if ($image === 'example/torn') {

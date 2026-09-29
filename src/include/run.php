@@ -68,6 +68,17 @@ foreach ($arguments as $argument) {
     $encoded = json_encode($line, COMPOSE2UNRAID_JSON_IN_HTML);
     echo '<script>c2uLine(' . $encoded . ')</script>' . "\n";
 });
+if ($exitCode === 0 && !$stopped && $_GET['action'] === 'update'
+    && is_file(COMPOSE2UNRAID_DOCKER_CLIENT)) {
+    require_once COMPOSE2UNRAID_DOCKER_CLIENT;
+    $status = compose2unraid_status(false);
+    $services = compose2unraid_words((string) $_GET['services']);
+    $update = new DockerUpdate();
+    $pulled = compose2unraid_updated_images($status, $arguments[0], $services);
+    foreach ($pulled as $image => $digest) {
+        $update->setUpdateStatus($image, $digest);
+    }
+}
 $verdict = match (true) {
     $stopped => 'Stopped, the window was closed.',
     $exitCode === 0 => 'Finished. Close this window to refresh the page.',
