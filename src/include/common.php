@@ -75,6 +75,20 @@ function compose2unraid_images_to_check(array $status): array
     return array_keys($images);
 }
 
+function compose2unraid_updated_images(array $status, string $stack, array $services): array
+{
+    $digests = [];
+    foreach ($status['containers'] as $container) {
+        $digest = $container['digests'][0] ?? '';
+        $named = in_array($container['service'], $services, true);
+        if ($container['stack'] === $stack && $named && $digest !== '') {
+            $digests[$container['image']] = $digest;
+        }
+    }
+
+    return $digests;
+}
+
 function compose2unraid_check_summary(int $total, int $newer, int $unknown, int $pinned = 0): string
 {
     $summary = $newer . ' of ' . $total . ' image' . ($total === 1 ? '' : 's')

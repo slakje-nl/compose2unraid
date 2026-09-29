@@ -191,7 +191,10 @@ Every change must keep them true.
   official images, `:latest` when there is no tag); a registry with a port or a digest reference
   may key differently on Unraid's side, and then simply shows no badge. The page reads that
   file; a container whose image carries the `remote` digest from it is up to date whatever the
-  file's `status` says, which is how the badge clears right after an update. The render test
+  file's `status` says, and a finished update writes the pulled digest into that file through
+  Unraid's own `setUpdateStatus`, as Unraid's update does, because a registry can answer
+  Unraid's check with a digest `docker pull` never resolves (seen on GitLab). Either is how the
+  badge clears right after an update. The render test
   runs `check.php` in a PHP subprocess against a stub `DockerClient.php` and a stub `var.ini`.
 - **Config is an Unraid `.cfg`** with one key, `BASE_PATH`, at
   `/boot/config/plugins/compose2unraid/compose2unraid.cfg`, read with `parse_plugin_cfg` in PHP and

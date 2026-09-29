@@ -214,6 +214,16 @@ expect($check, 'c2uLine("example\/cache:7@sha256:0123456789abcdef0123456789abcde
 expect($check, '<p class="done orange-text">1 of 6 images has a newer version. 3 could not be checked. 1 is pinned by digest.</p>', 'the summary counts newer, unchecked and pinned images');
 expect($check, 'onclick="parent.Shadowbox.close()"', 'the check closes Unraid\'s dialog');
 expect($check, '</div>' . "\n" . '<script>parent.c2uRefresh(false)</script>', 'the table behind refreshes as soon as the check is done');
+$updated = compose2unraid_updated_images(['containers' => [
+    ['stack' => 'alpha', 'service' => 'app', 'image' => 'example/alpha:1.2', 'digests' => ['sha256:new']],
+    ['stack' => 'alpha', 'service' => 'db', 'image' => 'example/db:1', 'digests' => ['sha256:d']],
+    ['stack' => 'beta', 'service' => 'app', 'image' => 'example/beta', 'digests' => ['sha256:b']],
+    ['stack' => 'alpha', 'service' => 'local', 'image' => 'example/built', 'digests' => []],
+]], 'alpha', ['app', 'local']);
+if ($updated !== ['example/alpha:1.2' => 'sha256:new']) {
+    $failures[] = 'after an update only the pulled images of the named services are marked up to date';
+}
+expect($run, '$update->setUpdateStatus($image, $digest);', 'a finished update writes the pulled digest through Unraid\'s own code');
 if (compose2unraid_check_summary(1, 1, 0) !== '1 of 1 image has a newer version.') {
     $failures[] = 'the summary reads well for one image';
 }
