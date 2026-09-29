@@ -140,6 +140,27 @@ teardown() {
   [ "$(printf '%s' "$output" | jq -c '.stacks[0].defined')" = '[{"service":"app","name":"my-app","icon":"https://example.com/a.png"},{"service":"db","name":"alpha-db-1","icon":""}]' ]
 }
 
+@test "status lists the ports a container publishes, for the WebUI link" {
+  make_stack alpha
+  add_running alpha
+  export FAKE_DOCKER_PUBLISHED_PORTS="c-alpha-app:8080:8081 c-alpha-app:9000:9000"
+
+  run status_json
+
+  [ "$status" -eq 0 ]
+  [ "$(printf '%s' "$output" | jq -c '.containers[0].ports')" = '[{"private":"8080","public":"8081"},{"private":"9000","public":"9000"}]' ]
+}
+
+@test "a container that publishes nothing has an empty port list" {
+  make_stack alpha
+  add_running alpha
+
+  run status_json
+
+  [ "$status" -eq 0 ]
+  [ "$(printf '%s' "$output" | jq -c '.containers[0].ports')" = '[]' ]
+}
+
 @test "a stack compose cannot read is broken even before it has containers" {
   make_stack broken
   add_running gone app x

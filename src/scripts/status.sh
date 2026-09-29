@@ -114,7 +114,9 @@ containers() {
         state: .State.Status, health: (.State.Health.Status // ""),
         image: .Config.Image, image_id: .Image,
         started: .State.StartedAt, created: .Created, labels: .Config.Labels,
-        digests: ($digests[.Image] // [])})' "$WORK/inspect"
+        digests: ($digests[.Image] // []),
+        ports: ((.NetworkSettings.Ports // {}) | to_entries | map(select(.value != null)
+          | {private: (.key | split("/")[0]), public: .value[0].HostPort}))})' "$WORK/inspect"
 }
 
 stats() {
