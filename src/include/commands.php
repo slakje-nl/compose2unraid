@@ -35,7 +35,7 @@ $sections = [
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Commands for <?= compose2unraid_h($stack) ?></title>
+<title>Shell commands for <?= compose2unraid_h($stack) ?></title>
 <link type="text/css" rel="stylesheet" href="/webGui/styles/default-fonts.css">
 <link type="text/css" rel="stylesheet" href="/webGui/styles/default-color-palette.css">
 <link type="text/css" rel="stylesheet" href="/webGui/styles/default-base.css">

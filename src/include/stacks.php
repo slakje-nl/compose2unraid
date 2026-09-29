@@ -64,7 +64,7 @@ $columns .= '</colgroup>';
           <?php endif ?>
           <?php if ($rows === []): ?>
             <span class="c2u-note">
-              <a href="#" class="c2u-commands" data-stack="<?= $h($stack) ?>">stack commands</a>
+              <a href="#" class="c2u-commands" data-stack="<?= $h($stack) ?>">shell commands</a>
             </span>
           <?php endif ?>
         </th>

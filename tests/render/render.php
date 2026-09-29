@@ -94,7 +94,7 @@ expect($fragment, '<span class="appname">my-cache</span>', 'a container_name is 
 expect($fragment, 'src="https://example.com/web.png"', 'the icon label from the compose file is shown');
 expect($fragment, 'not created', 'a service without a container says so');
 expect($fragment, '<span class="appname">alpha-db-1</span>', 'a service added on disk shows next to the running ones');
-expect($fragment, '<a href="#" class="c2u-commands" data-stack="noenv">stack commands</a>', 'a stack with nothing to click keeps the commands link');
+expect($fragment, '<a href="#" class="c2u-commands" data-stack="noenv">shell commands</a>', 'a stack with nothing to click keeps the commands link');
 refuse($fragment, '/data-base=/', 'the base path is not the page\'s business, commands.php knows it');
 refuse($fragment, '/c2u-commands" data-stack="(alpha|gamma)"/', 'a stack with rows has the commands in the menu');
 if (substr_count($fragment, 'No services yet.') !== 1) {

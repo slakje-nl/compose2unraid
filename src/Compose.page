@@ -39,7 +39,7 @@ table.tablesorter.c2u-stack tbody tr td {
 <script>
 function c2uShowCommands(stack) {
   openBox('/plugins/compose2unraid/include/commands.php?stack=' + encodeURIComponent(stack),
-    'Commands for ' + stack, 600, 900, true, 'c2uCommandsDone');
+    'Shell commands for ' + stack, 600, 900, true, 'c2uCommandsDone');
 }
 
 function c2uTitle(action, stack, services) {
@@ -135,7 +135,7 @@ function c2uMenu(icon, event) {
   } else {
     opts.push({header: 'Not in stacks'});
   }
-  opts.push({text: 'Stack commands', icon: 'fa-terminal', action: function (event) {
+  opts.push({text: 'Shell commands', icon: 'fa-terminal', action: function (event) {
     event.preventDefault();
     c2uShowCommands(data.stack);
   }});
